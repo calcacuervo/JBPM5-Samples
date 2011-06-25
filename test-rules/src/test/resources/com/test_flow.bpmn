@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<definitions id="Definition"
+             targetNamespace="http://www.jboss.org/drools"
+             typeLanguage="http://www.java.com/javaTypes"
+             expressionLanguage="http://www.mvel.org/2.0"
+             xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xs="http://www.w3.org/2001/XMLSchema-instance"
+             xs:schemaLocation="http://www.omg.org/spec/BPMN/20100524/MODEL BPMN20.xsd"
+             xmlns:g="http://www.jboss.org/drools/flow/gpd"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:tns="http://www.jboss.org/drools">
+
+  <itemDefinition id="_limitItem" structureRef="java.lang.Long" />
+  <itemDefinition id="_accuralCountItem" structureRef="java.lang.Long" />
+  <itemDefinition id="_exceedsItem" structureRef="java.lang.Boolean" />
+
+  <process processType="Private" isExecutable="true" id="test" name="test" tns:packageName="org.openq.test" >
+
+    <!-- process variables -->
+    <property id="limit" itemSubjectRef="_limitItem"/>
+    <property id="accuralCount" itemSubjectRef="_accuralCountItem"/>
+    <property id="exceeds" itemSubjectRef="_exceedsItem"/>
+
+    <!-- nodes -->
+    <startEvent id="_1" name="Start" />
+    <businessRuleTask id="_19" name="ExceedsRule" g:ruleFlowGroup="ExceedsGroup" />
+    <exclusiveGateway id="_2" name="toSubmit" gatewayDirection="Converging" />
+    <userTask id="_21" name="task1" >
+      <ioSpecification>
+        <inputSet>
+        </inputSet>
+        <outputSet>
+        </outputSet>
+      </ioSpecification>
+    </userTask>
+    <exclusiveGateway id="_4" name="Exceeded" gatewayDirection="Diverging" />
+    <scriptTask id="_20" name="Script" scriptFormat="http://www.java.com/java" >
+      <script>kcontext.getKnowledgeRuntime().insert(kcontext.getProcessInstance());</script>
+    </scriptTask>
+    <userTask id="_23" name="task3" >
+      <ioSpecification>
+        <inputSet>
+        </inputSet>
+        <outputSet>
+        </outputSet>
+      </ioSpecification>
+    </userTask>
+    <exclusiveGateway id="_6" name="CRA_Approved" gatewayDirection="Diverging" />
+    <userTask id="_22" name="task2" >
+      <ioSpecification>
+        <inputSet>
+        </inputSet>
+        <outputSet>
+        </outputSet>
+      </ioSpecification>
+    </userTask>
+    <exclusiveGateway id="_8" name="toUpdateStudy" gatewayDirection="Converging" />
+    <endEvent id="_13" name="End" >
+        <terminateEventDefinition/>
+    </endEvent>
+
+    <!-- connections -->
+    <sequenceFlow id="_20-_19" sourceRef="_20" targetRef="_19" />
+    <sequenceFlow id="_1-_2" sourceRef="_1" targetRef="_2" />
+    <sequenceFlow id="_22-_2" sourceRef="_22" targetRef="_2" />
+    <sequenceFlow id="_4-_21" sourceRef="_4" targetRef="_21" name="EXCEEDS" >
+      <conditionExpression xs:type="tFormalExpression" >return exceeds=true;</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="_19-_4" sourceRef="_19" targetRef="_4" />
+    <sequenceFlow id="_2-_20" sourceRef="_2" targetRef="_20" />
+    <sequenceFlow id="_8-_23" sourceRef="_8" targetRef="_23" />
+    <sequenceFlow id="_21-_6" sourceRef="_21" targetRef="_6" />
+    <sequenceFlow id="_6-_22" sourceRef="_6" targetRef="_22" name="NOTAPP" >
+      <conditionExpression xs:type="tFormalExpression" language="http://www.jboss.org/drools/rule" >eval(false)</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="_4-_8" sourceRef="_4" targetRef="_8" name="NOTEXCEEDS" >
+      <conditionExpression xs:type="tFormalExpression" >return exceeds=false;</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="_6-_8" sourceRef="_6" targetRef="_8" name="APPROVED" >
+      <conditionExpression xs:type="tFormalExpression" language="http://www.jboss.org/drools/rule" >eval(true)</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="_23-_13" sourceRef="_23" targetRef="_13" />
+
+  </process>
+
+  <bpmndi:BPMNDiagram>
+    <bpmndi:BPMNPlane bpmnElement="test" >
+      <bpmndi:BPMNShape bpmnElement="_1" >
+        <dc:Bounds x="89" y="16" width="48" height="48" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="_19" >
+        <dc:Bounds x="59" y="256" width="80" height="48" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="_2" >
+        <dc:Bounds x="89" y="96" width="48" height="48" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="_21" >
+        <dc:Bounds x="93" y="416" width="100" height="48" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="_4" >
+        <dc:Bounds x="69" y="336" width="48" height="48" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="_20" >
+        <dc:Bounds x="66" y="176" width="80" height="48" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="_23" >
+        <dc:Bounds x="16" y="656" width="100" height="48" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="_6" >
+        <dc:Bounds x="138" y="496" width="48" height="48" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="_22" >
+        <dc:Bounds x="169" y="16" width="100" height="48" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="_8" >
+        <dc:Bounds x="42" y="576" width="48" height="48" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="_13" >
+        <dc:Bounds x="42" y="736" width="48" height="48" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge bpmnElement="_20-_19" >
+        <di:waypoint x="106" y="200" />
+        <di:waypoint x="99" y="280" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="_1-_2" >
+        <di:waypoint x="113" y="40" />
+        <di:waypoint x="113" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="_22-_2" >
+        <di:waypoint x="219" y="40" />
+        <di:waypoint x="113" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="_4-_21" >
+        <di:waypoint x="93" y="360" />
+        <di:waypoint x="143" y="440" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="_19-_4" >
+        <di:waypoint x="99" y="280" />
+        <di:waypoint x="93" y="360" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="_2-_20" >
+        <di:waypoint x="113" y="120" />
+        <di:waypoint x="106" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="_8-_23" >
+        <di:waypoint x="66" y="600" />
+        <di:waypoint x="66" y="680" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="_21-_6" >
+        <di:waypoint x="143" y="440" />
+        <di:waypoint x="162" y="520" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="_6-_22" >
+        <di:waypoint x="162" y="520" />
+        <di:waypoint x="219" y="40" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="_4-_8" >
+        <di:waypoint x="93" y="360" />
+        <di:waypoint x="66" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="_6-_8" >
+        <di:waypoint x="162" y="520" />
+        <di:waypoint x="66" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="_23-_13" >
+        <di:waypoint x="66" y="680" />
+        <di:waypoint x="66" y="760" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</definitions>
