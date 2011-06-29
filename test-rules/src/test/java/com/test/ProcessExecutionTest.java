@@ -12,6 +12,7 @@ import junit.framework.Assert;
 
 import org.drools.KnowledgeBase;
 import org.drools.KnowledgeBaseFactory;
+import org.drools.base.MapGlobalResolver;
 import org.drools.builder.KnowledgeBuilder;
 import org.drools.builder.KnowledgeBuilderError;
 import org.drools.builder.KnowledgeBuilderFactory;
@@ -23,12 +24,8 @@ import org.drools.runtime.Environment;
 import org.drools.runtime.EnvironmentName;
 import org.drools.runtime.StatefulKnowledgeSession;
 import org.drools.runtime.process.ProcessInstance;
-import org.drools.runtime.process.WorkItem;
-import org.drools.runtime.process.WorkItemHandler;
-import org.drools.runtime.process.WorkItemManager;
 import org.jbpm.process.audit.JPAProcessInstanceDbLog;
 import org.jbpm.process.audit.JPAWorkingMemoryDbLogger;
-import org.jbpm.process.audit.NodeInstanceLog;
 import org.jbpm.process.audit.VariableInstanceLog;
 import org.junit.After;
 import org.junit.Before;
@@ -36,238 +33,176 @@ import org.junit.Test;
 
 import bitronix.tm.TransactionManagerServices;
 import bitronix.tm.resource.jdbc.PoolingDataSource;
-import java.sql.SQLException;
-import java.util.Properties;
-import org.drools.SessionConfiguration;
-import org.drools.base.MapGlobalResolver;
-import org.drools.persistence.SingleSessionCommandService;
-import org.drools.persistence.jpa.JpaJDKTimerService;
-import org.drools.persistence.jpa.processinstance.JPAWorkItemManagerFactory;
-import org.h2.tools.DeleteDbFiles;
-import org.h2.tools.Server;
-import org.jbpm.persistence.processinstance.JPAProcessInstanceManagerFactory;
-import org.jbpm.persistence.processinstance.JPASignalManagerFactory;
-import org.junit.Ignore;
 
 public class ProcessExecutionTest {
 
+	private PoolingDataSource ds1;
+	private EntityManagerFactory emf;
+	private StatefulKnowledgeSession session;
 
-    private PoolingDataSource ds1;
-    private EntityManagerFactory emf;
-    private StatefulKnowledgeSession session;
-    private static Server h2Server;
+	@Before
+	public void setUp() throws Exception {
 
-    static {
-        try {
-            DeleteDbFiles.execute("", "JPADroolsFlow", true);
-            h2Server = Server.createTcpServer(new String[0]);
-            h2Server.start();
-        } catch (SQLException e) {
-            throw new RuntimeException("can't start h2 server db", e);
-        }
-       // DOMConfigurator.configure(ProcessExecutionTest.class.getResource("/log4j.xml"));
-    }
+		ds1 = new PoolingDataSource();
+		ds1.setUniqueName("jdbc/testDS1");
+		ds1.setClassName("org.h2.jdbcx.JdbcDataSource");
+		ds1.setMaxPoolSize(3);
+		ds1.setAllowLocalTransactions(true);
+		ds1.getDriverProperties().put("user", "sa");
+		ds1.getDriverProperties().put("password", "sasa");
+		ds1.getDriverProperties().put("URL", "jdbc:h2:mem:mydb");
 
-    @Override
-    protected void finalize() throws Throwable {
-        if (h2Server != null) {
-            h2Server.stop();
-        }
-        DeleteDbFiles.execute("", "JPADroolsFlow", true);
-        super.finalize();
-    }
+		ds1.init();
 
-    @Before
-    public void setUp() throws Exception {
+		emf = Persistence
+				.createEntityManagerFactory("org.jbpm.persistence.jpa");
 
+	}
 
+	@After
+	public void tearDown() throws Exception {
+		emf.close();
+		ds1.close();
+	}
 
-        ds1 = new PoolingDataSource();
-//		ds1.setUniqueName("jdbc/testDS1");
-//		ds1.setClassName("org.h2.jdbcx.JdbcDataSource");
-//		ds1.setMaxPoolSize(3);
-//		ds1.setAllowLocalTransactions(true);
-//		ds1.getDriverProperties().put("user", "sa");
-//		ds1.getDriverProperties().put("password", "sasa");
-//		ds1.getDriverProperties().put("URL", "jdbc:h2:mem:mydb");
+	private KnowledgeBase createKnowledgeBase() {
+		KnowledgeBuilder kbuilder = KnowledgeBuilderFactory
+				.newKnowledgeBuilder();
+		kbuilder.add(new ClassPathResource("com/exceeds.drl"), ResourceType.DRL);
+		kbuilder.add(new ClassPathResource("com/test_flow_1.bpmn"),
+				ResourceType.BPMN2);
+		kbuilder.add(new ClassPathResource("com/stateless_test.bpmn"),
+				ResourceType.BPMN2);
+		kbuilder.add(new ClassPathResource("com/stateless_exceeds_rule.drl"),
+				ResourceType.DRL);
 
-        ds1.setClassName("bitronix.tm.resource.jdbc.lrc.LrcXADataSource");
-    	ds1.setUniqueName("jdbc/testDS1");
-    	ds1.setMaxPoolSize(5);
-    	ds1.setAllowLocalTransactions(true);
-    	ds1.getDriverProperties().setProperty("driverClassName", "org.h2.Driver");
-    	ds1.getDriverProperties().setProperty("url", "jdbc:h2:tcp://localhost/JPADroolsFlow");
-    	ds1.getDriverProperties().setProperty("user", "sa");
-    	ds1.getDriverProperties().setProperty("password", "");
-        
+		KnowledgeBase kbase = KnowledgeBaseFactory.newKnowledgeBase();
+		kbase.addKnowledgePackages(kbuilder.getKnowledgePackages());
+		if (kbuilder.hasErrors()) {
+			StringBuilder errorMessage = new StringBuilder();
+			for (KnowledgeBuilderError error : kbuilder.getErrors()) {
+				errorMessage.append(error.getMessage());
+				errorMessage.append(System.getProperty("line.separator"));
+			}
+			Assert.fail(errorMessage.toString());
+		}
+		return kbase;
+	}
 
-        ds1.init();
+	@Test
+	public void test_rule_with_stateful() throws Exception {
+		KnowledgeBase kbase = createKnowledgeBase();
 
+		Environment env = KnowledgeBaseFactory.newEnvironment();
+		env.set(EnvironmentName.ENTITY_MANAGER_FACTORY, emf);
+		env.set(EnvironmentName.TRANSACTION_MANAGER,
+				TransactionManagerServices.getTransactionManager());
+		env.set(EnvironmentName.GLOBALS, new MapGlobalResolver());
 
+		session = JPAKnowledgeService.newStatefulKnowledgeSession(kbase, null,
+				env);
 
-        emf = Persistence.createEntityManagerFactory("org.jbpm.persistence.jpa");
+		KnowledgeRuntimeLoggerFactory.newConsoleLogger(session);
+		session.getWorkItemManager().registerWorkItemHandler("Human Task",
+				new SyncTestWorkItemHandler());
 
-    }
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		parameters.put("limit", new Long(1));
+		parameters.put("count", new Long(2));
 
-    @After
-    public void tearDown() throws Exception {
-        emf.close();
-        ds1.close();
-    }
+		int sessionId = session.getId();
 
-    private KnowledgeBase createKnowledgeBase() {
-        KnowledgeBuilder kbuilder = KnowledgeBuilderFactory.newKnowledgeBuilder();
-        kbuilder.add(
-                new ClassPathResource("com/exceeds.drl"),
-                ResourceType.DRL);
-        kbuilder.add(new ClassPathResource("com/test_flow_1.bpmn"),
-                ResourceType.BPMN2);
+		session.dispose();
 
-        KnowledgeBase kbase = KnowledgeBaseFactory.newKnowledgeBase();
-        kbase.addKnowledgePackages(kbuilder.getKnowledgePackages());
-        if (kbuilder.hasErrors()) {
-            StringBuilder errorMessage = new StringBuilder();
-            for (KnowledgeBuilderError error : kbuilder.getErrors()) {
-                errorMessage.append(error.getMessage());
-                errorMessage.append(System.getProperty("line.separator"));
-            }
-            Assert.fail(errorMessage.toString());
-        }
-        return kbase;
-    }
+		Thread.sleep(1000);
 
-    @Test
-    public void testWithFireUntilHalt() throws Exception {
-        KnowledgeBase kbase = createKnowledgeBase();
-       
-        Environment env = KnowledgeBaseFactory.newEnvironment();
-        env.set(EnvironmentName.ENTITY_MANAGER_FACTORY, emf);
-        env.set(EnvironmentName.TRANSACTION_MANAGER,
-                TransactionManagerServices.getTransactionManager());
-        env.set( EnvironmentName.GLOBALS, new MapGlobalResolver() );
-        
-       
-        session = JPAKnowledgeService.newStatefulKnowledgeSession(kbase, null, env);
-       
-        KnowledgeRuntimeLoggerFactory.newConsoleLogger(session);
-        session.getWorkItemManager().registerWorkItemHandler("Human Task", new SyncTestWorkItemHandler());
+		session = JPAKnowledgeService.loadStatefulKnowledgeSession(sessionId,
+				kbase, null, env);
+		KnowledgeRuntimeLoggerFactory.newConsoleLogger(session);
+		session.getWorkItemManager().registerWorkItemHandler("Human Task",
+				new SyncTestWorkItemHandler());
 
-        Map<String, Object> parameters = new HashMap<String, Object>();
-        parameters.put("limit", new Long(1));
-        parameters.put("accuralCount", new Long(2));
+		ProcessInstance process = session.createProcessInstance("test",
+				parameters);
 
+		session.dispose();
 
-        int sessionId = session.getId();
-       
-        session.dispose();
-        
-        Thread.sleep(1000);
-        
-        
-        session = JPAKnowledgeService.loadStatefulKnowledgeSession( sessionId, kbase, null, env );
-        KnowledgeRuntimeLoggerFactory.newConsoleLogger(session);
-        session.getWorkItemManager().registerWorkItemHandler("Human Task", new SyncTestWorkItemHandler());
-        
-        ProcessInstance process = session.createProcessInstance(
-                "test", parameters);
-         
-        session.dispose();
-        
-        Thread.sleep(1000);
-        
-        session = JPAKnowledgeService.loadStatefulKnowledgeSession( sessionId, kbase, null, env );
-        KnowledgeRuntimeLoggerFactory.newConsoleLogger(session);
-        session.getWorkItemManager().registerWorkItemHandler("Human Task", new SyncTestWorkItemHandler());
-        session.insert(process);
-        session.fireAllRules();
-        long processInstanceId = process.getId();
-        session.dispose();
-        
-        Thread.sleep(1000);
-        
-        
+		Thread.sleep(1000);
 
-        
-        session = JPAKnowledgeService.loadStatefulKnowledgeSession( sessionId, kbase, null, env );
-        KnowledgeRuntimeLoggerFactory.newConsoleLogger(session);
-        session.getWorkItemManager().registerWorkItemHandler("Human Task", new SyncTestWorkItemHandler());
-        
-        session.startProcessInstance(processInstanceId);
-        session.fireAllRules();
-        session.dispose();
-        
+		session = JPAKnowledgeService.loadStatefulKnowledgeSession(sessionId,
+				kbase, null, env);
+		KnowledgeRuntimeLoggerFactory.newConsoleLogger(session);
+		session.getWorkItemManager().registerWorkItemHandler("Human Task",
+				new SyncTestWorkItemHandler());
+		session.insert(process);
+		session.fireAllRules();
+		long processInstanceId = process.getId();
+		session.dispose();
 
-        Thread.sleep(5000);
+		Thread.sleep(1000);
 
-    }
+		session = JPAKnowledgeService.loadStatefulKnowledgeSession(sessionId,
+				kbase, null, env);
+		KnowledgeRuntimeLoggerFactory.newConsoleLogger(session);
+		session.getWorkItemManager().registerWorkItemHandler("Human Task",
+				new SyncTestWorkItemHandler());
 
-    @Ignore
-    public void testWithFireAllRules() throws Exception {
-        KnowledgeBase kbase = createKnowledgeBase();
-        EntityManagerFactory emf = Persistence.createEntityManagerFactory("org.jbpm.persistence.jpa");
-        Environment env = KnowledgeBaseFactory.newEnvironment();
-        env.set(EnvironmentName.ENTITY_MANAGER_FACTORY, emf);
-        env.set(EnvironmentName.TRANSACTION_MANAGER,
-                TransactionManagerServices.getTransactionManager());
-        final StatefulKnowledgeSession session = JPAKnowledgeService.newStatefulKnowledgeSession(kbase, null, env);
-        new JPAWorkingMemoryDbLogger(session);
-        KnowledgeRuntimeLoggerFactory.newConsoleLogger(session);
-        JPAProcessInstanceDbLog log = new JPAProcessInstanceDbLog(env);
-        session.getWorkItemManager().registerWorkItemHandler("Human Task",
-                new WorkItemHandler() {
+		session.startProcessInstance(processInstanceId);
+		session.fireAllRules();
+		session.dispose();
 
-                    public void executeWorkItem(WorkItem workItem,
-                            WorkItemManager manager) {
-                        Map<String, Object> results = new HashMap<String, Object>();
-                        results.put("Result", "ResultValue");
-                        manager.completeWorkItem(workItem.getId(), results);
-                    }
+		Thread.sleep(5000);
 
-                    public void abortWorkItem(WorkItem workItem,
-                            WorkItemManager manager) {
-                    }
-                });
+	}
 
-        Map<String, Object> parameters = new HashMap<String, Object>();
-        parameters.put("limit", new Long(1));
-        parameters.put("accuralCount", new Long(2));
+	@Test
+	public void test_rule_with_stateless() throws Exception {
+		KnowledgeBase kbase = createKnowledgeBase();
 
-        ProcessInstance process = session.createProcessInstance(
-                "test", parameters);
-        session.insert(process);
-        long processInstanceId = process.getId();
-//		new Thread(new Runnable() {
-//			
-//			@Override
-//			public void run() {
-//				session.fireUntilHalt();
-//			}
-//		}).start();
-        session.startProcessInstance(processInstanceId);
-        Thread.sleep(5000);
-        session.fireAllRules();
+		Environment env = KnowledgeBaseFactory.newEnvironment();
+		env.set(EnvironmentName.ENTITY_MANAGER_FACTORY, emf);
+		env.set(EnvironmentName.TRANSACTION_MANAGER,
+				TransactionManagerServices.getTransactionManager());
+		env.set(EnvironmentName.GLOBALS, new MapGlobalResolver());
 
-        List<NodeInstanceLog> nodes = log.findNodeInstances(processInstanceId);
-        boolean endfound = false;
-        for (Iterator iterator = nodes.iterator(); iterator.hasNext();) {
-            NodeInstanceLog variableInstanceLog = (NodeInstanceLog) iterator.next();
-            if (variableInstanceLog.getNodeName().equalsIgnoreCase("end")) {
-                endfound = true;
-            }
-            System.out.println(variableInstanceLog);
-        }
-        Assert.assertTrue(endfound);
+		session = JPAKnowledgeService.newStatefulKnowledgeSession(kbase, null,
+				env);
+		new JPAWorkingMemoryDbLogger(session);
+		KnowledgeRuntimeLoggerFactory.newConsoleLogger(session);
+		JPAProcessInstanceDbLog log = new JPAProcessInstanceDbLog(env);
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		parameters.put("limit", new Long(1));
+		parameters.put("count", new Long(2));
 
-        List<VariableInstanceLog> variables = log.findVariableInstances(processInstanceId);
-        boolean found = false;
-        for (Iterator iterator = variables.iterator(); iterator.hasNext();) {
-            VariableInstanceLog variableInstanceLog = (VariableInstanceLog) iterator.next();
-            if (variableInstanceLog.getVariableInstanceId().equalsIgnoreCase("exceeds")) {
-                Assert.assertTrue(variableInstanceLog.getValue().equalsIgnoreCase("true"));
-                found = true;
-            }
-            System.out.println(variableInstanceLog);
-        }
-        Assert.assertTrue(found);
-    }
+		ProcessInstance process = session.createProcessInstance(
+				"test_stateless", parameters);
+
+		session.getWorkItemManager().registerWorkItemHandler("Human Task",
+				new SyncTestWorkItemHandler());
+		session.insert(process);
+		long processInstanceId = process.getId();
+
+		session.getWorkItemManager().registerWorkItemHandler("Human Task",
+				new SyncTestWorkItemHandler());
+		session.getWorkItemManager().registerWorkItemHandler("ExceedsRule",
+				new StatelessRuleEvaluationWorkItemHandler(kbase));
+		session.startProcessInstance(processInstanceId);
+
+		List<VariableInstanceLog> variables = log
+				.findVariableInstances(processInstanceId);
+		boolean found = false;
+		for (Iterator iterator = variables.iterator(); iterator.hasNext();) {
+			VariableInstanceLog variableInstanceLog = (VariableInstanceLog) iterator
+					.next();
+			if (variableInstanceLog.getVariableInstanceId().equalsIgnoreCase(
+					"exceeds")) {
+				Assert.assertTrue(variableInstanceLog.getValue()
+						.equalsIgnoreCase("true"));
+				found = true;
+			}
+			System.out.println(variableInstanceLog);
+		}
+		Assert.assertTrue(found);
+
+	}
 }

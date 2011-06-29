@@ -1,0 +1,27 @@
+package com.openq.test;
+ 
+import java.util.List;
+import java.lang.Long;
+import java.lang.String;
+import java.lang.Boolean;
+import com.test.DataInput;
+import com.test.DataOutput;
+import java.util.Map;
+import java.util.HashMap;
+
+rule "Exceeds" 
+	when
+		$input: DataInput(dataMap["limit"] < dataMap["count"])
+		$output: DataOutput()
+	then
+		$output.getDataMap().put("exceeds", new Boolean(true));
+end
+
+rule "NotExceeds" 
+	when
+		$input: DataInput(dataMap["limit"] >= dataMap["count"])
+		$output: DataOutput()
+	then
+		$output.getDataMap().put("exceeds", new Boolean(false));
+end
+

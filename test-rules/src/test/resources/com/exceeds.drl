@@ -7,23 +7,20 @@ import java.util.Map;
 import java.util.HashMap;
 
 rule "Exceeds" 
-        ruleflow-group "ExceedsGroup"
-	
-	
+    ruleflow-group "ExceedsGroup"
 	when
 		$process: WorkflowProcessInstance()
-		eval( ((Long)$process.getVariable("accuralCount")).longValue() > ((Long)$process.getVariable("limit")).longValue() )
+		eval( ((Long)$process.getVariable("count")).longValue() > ((Long)$process.getVariable("limit")).longValue() )
 	then
 		((WorkflowProcessInstance)kcontext.getKnowledgeRuntime().getProcessInstance($process.getId())).setVariable("exceeds", true);
 end
 
 rule "NotExceeds" 
-        ruleflow-group "ExceedsGroup"
-	
+    ruleflow-group "ExceedsGroup"
 	
 	when
 		$process: WorkflowProcessInstance()
-                eval( ((Long)$process.getVariable("accuralCount")).longValue() < ((Long)$process.getVariable("limit")).longValue() )
+                eval( ((Long)$process.getVariable("count")).longValue() < ((Long)$process.getVariable("limit")).longValue() )
 	then
 		((WorkflowProcessInstance)kcontext.getKnowledgeRuntime().getProcessInstance($process.getId())).setVariable("exceeds", false);
 end

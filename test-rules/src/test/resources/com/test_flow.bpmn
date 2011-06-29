@@ -13,14 +13,14 @@
              xmlns:tns="http://www.jboss.org/drools">
 
   <itemDefinition id="_limitItem" structureRef="java.lang.Long" />
-  <itemDefinition id="_accuralCountItem" structureRef="java.lang.Long" />
+  <itemDefinition id="_CountItem" structureRef="java.lang.Long" />
   <itemDefinition id="_exceedsItem" structureRef="java.lang.Boolean" />
 
   <process processType="Private" isExecutable="true" id="test" name="test" tns:packageName="org.openq.test" >
 
     <!-- process variables -->
     <property id="limit" itemSubjectRef="_limitItem"/>
-    <property id="accuralCount" itemSubjectRef="_accuralCountItem"/>
+    <property id="count" itemSubjectRef="_CountItem"/>
     <property id="exceeds" itemSubjectRef="_exceedsItem"/>
 
     <!-- nodes -->
