@@ -1,4 +1,4 @@
-package com.openq.test;
+package com.test;
  
 import java.util.List;
 import java.lang.Long;
