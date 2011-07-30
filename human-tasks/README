@@ -1,0 +1,4 @@
+This subproject will contain tests and examples for running human tasks.
+Current tests:
+- com.test.HumanTaskTest: Shows how to run tasks in a process, claiming and completing it, having many tasks in a process.
+- com.test.HumanTaskGroupTest: Shows how to run tests using using user and groups.
