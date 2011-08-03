@@ -47,7 +47,7 @@
         </outputSet>
       </ioSpecification>
     </userTask>
-    <exclusiveGateway id="_6" name="CRA_Approved" gatewayDirection="Diverging" />
+    <exclusiveGateway id="_6" name="Approved" gatewayDirection="Diverging" />
     <userTask id="_22" name="task2" >
       <ioSpecification>
         <inputSet>
@@ -56,7 +56,7 @@
         </outputSet>
       </ioSpecification>
     </userTask>
-    <exclusiveGateway id="_8" name="toUpdateStudy" gatewayDirection="Converging" />
+    <exclusiveGateway id="_8" name="toUpdate" gatewayDirection="Converging" />
     <endEvent id="_13" name="End" >
         <terminateEventDefinition/>
     </endEvent>

@@ -87,9 +87,9 @@
       </potentialOwner>
     </userTask>
     
-    <exclusiveGateway id="_7" name="toUpdateStudy" gatewayDirection="Converging" />
+    <exclusiveGateway id="_7" name="gateway7" gatewayDirection="Converging" />
     
-    <exclusiveGateway id="_8" name="CRA_Approved" gatewayDirection="Diverging" />
+    <exclusiveGateway id="_8" name="Approved" gatewayDirection="Diverging" />
 
     <userTask id="_9" name="task3" >
       <ioSpecification>
