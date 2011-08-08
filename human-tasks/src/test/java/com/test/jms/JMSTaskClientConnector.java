@@ -128,6 +128,10 @@ public class JMSTaskClientConnector implements TaskClientConnector {
 
 	public void write(Object object) {
 		try {
+			logger.debug("+++SE VINO EL ADD WRITE LOCO+++");
+			if (TransactionManagerServices.getTransactionManager().getCurrentTransaction() == null) {
+				TransactionManagerServices.getTransactionManager().begin();
+			}
 			ObjectMessage message = this.session.createObjectMessage();
 			this.selector = UUID.randomUUID().toString();
 			Thread responseThread = new Thread(new Responder(selector));
@@ -135,6 +139,8 @@ public class JMSTaskClientConnector implements TaskClientConnector {
 			message.setStringProperty(TaskServiceConstants.SELECTOR_NAME, this.selector);
 			message.setObject((Serializable)object);
 			this.producer.send(message);
+			logger.debug("+++SE TERMINO EL ADD WRITE LOCO+++");
+			TransactionManagerServices.getTransactionManager().commit();
 			//this.session.commit();
 		} catch (Throwable e) {
 			throw new RuntimeException("Error creating message", e);

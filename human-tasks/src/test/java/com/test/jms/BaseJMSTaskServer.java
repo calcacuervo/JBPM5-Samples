@@ -89,6 +89,8 @@ public abstract class BaseJMSTaskServer extends TaskServer {
 		} else if ("CLIENT_ACKNOWLEDGE".equals(ackModeString)) {
 			ackMode = Session.CLIENT_ACKNOWLEDGE;
 		}
+
+		
 		ConnectionFactory factory = (ConnectionFactory) ctx.lookup(connFactoryName);
 		try {
 			connection = factory.createConnection();

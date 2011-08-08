@@ -31,9 +31,12 @@ import org.jbpm.task.service.ContentData;
 import org.jbpm.task.service.TaskClient;
 import org.jbpm.task.service.responsehandlers.BlockingAddTaskResponseHandler;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class HumanTaskTest extends BaseHumanTaskTest {
 
+	private static final Logger logger = LoggerFactory.getLogger(HumanTaskTest.class);
 	@Override
 	protected String[] getTestUsers() {
 		return new String[] { "testUser1", "testUser2", "testUser3",
@@ -79,9 +82,6 @@ public class HumanTaskTest extends BaseHumanTaskTest {
 		JPAProcessInstanceDbLog processLog = new JPAProcessInstanceDbLog(
 				session.getEnvironment());
 
-		UserTransaction ut = (UserTransaction) new InitialContext()
-		.lookup("java:comp/UserTransaction");
-		ut.begin();
 		TaskClient tc = this.client;
 		Task task = new Task();
 		List<I18NText> names1 = new ArrayList<I18NText>();
@@ -97,7 +97,6 @@ public class HumanTaskTest extends BaseHumanTaskTest {
 		ContentData data = new ContentData();
 		BlockingAddTaskResponseHandler addTaskHandler = new BlockingAddTaskResponseHandler();
 		tc.addTask(new Task(), data, addTaskHandler);
-		addTaskHandler.waitTillDone(2000);
 		long taskId = addTaskHandler.getTaskId();
 
 		tc.disconnect();
