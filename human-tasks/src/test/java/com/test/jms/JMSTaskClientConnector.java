@@ -82,6 +82,7 @@ public class JMSTaskClientConnector implements TaskClientConnector {
 				ctx = new InitialContext();
 			}
 			ConnectionFactory factory = (ConnectionFactory) ctx.lookup(connFactoryName);
+
 			this.connection = factory.createConnection();
 			this.session = this.connection.createSession(transactedQueue, acknowledgeMode);
 			this.queue = this.session.createQueue(queueName);
