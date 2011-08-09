@@ -81,14 +81,7 @@ public class JMSTaskClientConnector implements TaskClientConnector {
 			if (ctx == null) {
 				ctx = new InitialContext();
 			}
-			ConnectionFactory factory = (ConnectionFactory) ctx.lookup(connFactoryName);
-
-			this.connection = factory.createConnection();
-			this.session = this.connection.createSession(transactedQueue, acknowledgeMode);
-			this.queue = this.session.createQueue(queueName);
-			this.responseQueue = this.session.createQueue(responseQueueName);
-			this.producer = this.session.createProducer(this.queue);
-			this.connection.start();
+			
 			return true;
 		} catch (Exception e) {
 			logger.error(e.getMessage());
@@ -129,10 +122,27 @@ public class JMSTaskClientConnector implements TaskClientConnector {
 
 	public void write(Object object) {
 		try {
-			logger.debug("+++SE VINO EL ADD WRITE LOCO+++");
-			if (TransactionManagerServices.getTransactionManager().getCurrentTransaction() == null) {
-				TransactionManagerServices.getTransactionManager().begin();
+			String connFactoryName = connectionProperties.getProperty(TaskServiceConstants.TASK_CLIENT_CONNECTION_FACTORY_NAME);
+			String transactedQueueString = connectionProperties.getProperty(TaskServiceConstants.TASK_CLIENT_TRANSACTED_QUEUE_NAME);
+			String acknowledgeModeString = connectionProperties.getProperty(TaskServiceConstants.TASK_CLIENT_ACKNOWLEDGE_MODE_NAME);
+			String queueName = connectionProperties.getProperty(TaskServiceConstants.TASK_CLIENT_QUEUE_NAME_NAME);
+			String responseQueueName = connectionProperties.getProperty(TaskServiceConstants.TASK_CLIENT_RESPONSE_QUEUE_NAME_NAME);
+			boolean transactedQueue = Boolean.valueOf(transactedQueueString);
+			int acknowledgeMode = Session.DUPS_OK_ACKNOWLEDGE; //default
+			if ("AUTO_ACKNOWLEDGE".equals(acknowledgeModeString)) {
+				acknowledgeMode = Session.AUTO_ACKNOWLEDGE;
+			} else if ("CLIENT_ACKNOWLEDGE".equals(acknowledgeModeString)) {
+				acknowledgeMode = Session.CLIENT_ACKNOWLEDGE;
 			}
+			TransactionManagerServices.getTransactionManager().begin();
+			ConnectionFactory factory = (ConnectionFactory) this.context.lookup(connFactoryName);
+
+			this.connection = factory.createConnection();
+			this.connection.start();
+			this.session = this.connection.createSession(transactedQueue, acknowledgeMode);
+			this.queue = this.session.createQueue(queueName);
+			this.responseQueue = this.session.createQueue(responseQueueName);
+			this.producer = this.session.createProducer(this.queue);
 			ObjectMessage message = this.session.createObjectMessage();
 			this.selector = UUID.randomUUID().toString();
 			Thread responseThread = new Thread(new Responder(selector));
@@ -141,8 +151,14 @@ public class JMSTaskClientConnector implements TaskClientConnector {
 			message.setObject((Serializable)object);
 			this.producer.send(message);
 			logger.debug("+++SE TERMINO EL ADD WRITE LOCO+++");
+			System.out.println(object);
 			TransactionManagerServices.getTransactionManager().commit();
-			//this.session.commit();
+		} catch (JMSException e) {
+			if (!"102".equals(e.getErrorCode())) {
+				throw new RuntimeException("No se pudo recibir respuesta JMS", e);
+			}
+			logger.info(e.getMessage());
+			return;
 		} catch (Throwable e) {
 			throw new RuntimeException("Error creating message", e);
 		}
@@ -171,8 +187,10 @@ public class JMSTaskClientConnector implements TaskClientConnector {
 		public void run() {
 			MessageConsumer consumer = null;
 			try {
+				TransactionManagerServices.getTransactionManager().begin();
 				consumer = session.createConsumer(responseQueue, " " + TaskServiceConstants.SELECTOR_NAME + " like '" + selector + "%' ");
 				ObjectMessage serverMessage = (ObjectMessage) consumer.receive();
+				TransactionManagerServices.getTransactionManager().commit();
 				if (serverMessage != null) {
 					((JMSTaskClientHandler) handler).messageReceived(session, readMessage(serverMessage), responseQueue, selector);
 				}

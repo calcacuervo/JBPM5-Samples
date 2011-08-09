@@ -12,7 +12,6 @@ import javax.jms.Topic;
 import org.drools.SystemEventListener;
 import org.jbpm.task.service.TaskServerHandler;
 import org.jbpm.task.service.TaskService;
-import org.jbpm.task.service.jms.JMSSessionWriter;
 
 public class JMSTaskServerHandler {
 	
@@ -36,6 +35,7 @@ public class JMSTaskServerHandler {
 			producer = session.createProducer(destination);
 			this.producers.put(name, producer);
 		}
+		System.out.println("{{{{{MessageReceived in server!");
 		this.handler.messageReceived(new JMSSessionWriter(session, producer, selector), message);
 	}
 }

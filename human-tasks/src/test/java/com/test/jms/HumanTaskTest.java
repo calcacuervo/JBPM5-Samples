@@ -34,12 +34,14 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import bitronix.tm.TransactionManagerServices;
+
 public class HumanTaskTest extends BaseHumanTaskTest {
 
 	private static final Logger logger = LoggerFactory.getLogger(HumanTaskTest.class);
 	@Override
 	protected String[] getTestUsers() {
-		return new String[] { "testUser1", "testUser2", "testUser3",
+		return new String[] { "usr0", "testUser2", "testUser3",
 				"Administrator" };
 	}
 
@@ -68,20 +70,6 @@ public class HumanTaskTest extends BaseHumanTaskTest {
 
 	@Test
 	public void twoHumanTasksCompleted() throws Exception {
-		KnowledgeBase kbase = this.createKnowledgeBase();
-		session = JPAKnowledgeService.newStatefulKnowledgeSession(kbase, null,
-				env);
-
-		// this will log in audit tables
-		new JPAWorkingMemoryDbLogger(session);
-
-		KnowledgeRuntimeLoggerFactory.newConsoleLogger(session);
-
-		// Logger that will give information about the process state, variables,
-		// etc
-		JPAProcessInstanceDbLog processLog = new JPAProcessInstanceDbLog(
-				session.getEnvironment());
-
 		TaskClient tc = this.client;
 		Task task = new Task();
 		List<I18NText> names1 = new ArrayList<I18NText>();
@@ -93,12 +81,13 @@ public class HumanTaskTest extends BaseHumanTaskTest {
 		taskData.setCreatedBy(new User("usr0"));
 		taskData.setActualOwner(new User("usr0"));
 		task.setTaskData(taskData);
-		
 		ContentData data = new ContentData();
 		BlockingAddTaskResponseHandler addTaskHandler = new BlockingAddTaskResponseHandler();
 		tc.addTask(new Task(), data, addTaskHandler);
+		System.out.println("-----LLAMAR AL TASK ID-----");
+		Thread.sleep(2000000000);
 		long taskId = addTaskHandler.getTaskId();
-
+		
 		tc.disconnect();
 		
 		tc.connect();

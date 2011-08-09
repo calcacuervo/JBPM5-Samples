@@ -1,17 +1,18 @@
 package com.test.jms;
 
+import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import javax.naming.Binding;
+import javax.jms.ConnectionFactory;
 import javax.naming.Context;
 import javax.naming.InitialContext;
-import javax.naming.NamingEnumeration;
-import javax.naming.NamingException;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
+import javax.transaction.TransactionManager;
 
 import junit.framework.Assert;
 
@@ -26,7 +27,6 @@ import org.drools.compiler.ProcessBuilderFactory;
 import org.drools.io.impl.ClassPathResource;
 import org.drools.logger.KnowledgeRuntimeLogger;
 import org.drools.runtime.Environment;
-import org.drools.runtime.EnvironmentName;
 import org.drools.runtime.process.ProcessRuntimeFactory;
 import org.hornetq.api.core.TransportConfiguration;
 import org.hornetq.core.config.Configuration;
@@ -46,12 +46,18 @@ import org.hornetq.jms.server.impl.JMSServerManagerImpl;
 import org.jbpm.process.builder.ProcessBuilderFactoryServiceImpl;
 import org.jbpm.process.instance.ProcessRuntimeFactoryServiceImpl;
 import org.jbpm.task.Group;
+import org.jbpm.task.I18NText;
+import org.jbpm.task.Status;
+import org.jbpm.task.Task;
+import org.jbpm.task.TaskData;
 import org.jbpm.task.User;
+import org.jbpm.task.service.ContentData;
 import org.jbpm.task.service.TaskClient;
 import org.jbpm.task.service.TaskServer;
 import org.jbpm.task.service.TaskService;
 import org.jbpm.task.service.TaskServiceSession;
 import org.jbpm.task.service.jms.JMSTaskClientHandler;
+import org.jbpm.task.service.responsehandlers.BlockingAddTaskResponseHandler;
 import org.jnp.server.Main;
 import org.jnp.server.NamingBeanImpl;
 import org.junit.After;
@@ -63,6 +69,7 @@ import bitronix.tm.TransactionManagerServices;
 import bitronix.tm.resource.jdbc.PoolingDataSource;
 import bitronix.tm.resource.jms.PoolingConnectionFactory;
 
+import com.sun.org.apache.regexp.internal.RESyntaxException;
 import com.test.MockUserInfo;
 
 public abstract class BaseHumanTaskTest {
@@ -115,57 +122,52 @@ public abstract class BaseHumanTaskTest {
 	@Before
 	public void setUp() throws Exception {
 		startJornet();
-		connectionFactory = new PoolingConnectionFactory();
-		connectionFactory.setUniqueName("hornet");
-		connectionFactory
-				.setClassName("bitronix.tm.resource.jms.JndiXAConnectionFactory");
-		connectionFactory.setMaxPoolSize(5);
-		connectionFactory.setAllowLocalTransactions(true);
-		connectionFactory.getDriverProperties().put("initialContextFactory",
+//		ds1 = new PoolingDataSource();
+//		ds1.setUniqueName("jdbc/testDS1");
+//		ds1.setClassName("org.h2.jdbcx.JdbcDataSource");
+//		ds1.setMaxPoolSize(3);
+//		ds1.setAllowLocalTransactions(true);
+//		ds1.getDriverProperties().put("user", "sa");
+//		ds1.getDriverProperties().put("password", "sasa");
+//		ds1.getDriverProperties().put("URL", "jdbc:h2:mem:mydb");
+//		ds1.setUseTmJoin(true);
+//		ds1.init();
+//
+//		// System.setProperty("java.naming.factory.initial",
+//		// "bitronix.tm.jndi.BitronixInitialContextFactory");
+//		emf = Persistence
+//				.createEntityManagerFactory("org.jbpm.persistence.jpa");
+//
+//		env = KnowledgeBaseFactory.newEnvironment();
+//		env.set(EnvironmentName.ENTITY_MANAGER_FACTORY, emf);
+//		env.set(EnvironmentName.TRANSACTION_MANAGER,
+//				TransactionManagerServices.getTransactionManager());
+
+		final PoolingConnectionFactory pcf = new PoolingConnectionFactory();
+		pcf.setClassName("bitronix.tm.resource.jms.JndiXAConnectionFactory");
+		pcf.setUniqueName("hornet");
+		pcf.setMaxPoolSize(5);
+		pcf.getDriverProperties().setProperty("name", "XAConnectionFactory");
+		pcf.getDriverProperties().setProperty("initialContextFactory",
 				"org.jnp.interfaces.NamingContextFactory");
-		connectionFactory.getDriverProperties().put("providerUrl",
+		pcf.getDriverProperties().setProperty("providerUrl",
 				"jnp://localhost:1099");
-		connectionFactory.getDriverProperties().put(
+		pcf.getDriverProperties().setProperty(
 				"extraJndiProperties.java.naming.factory.url.pkgs",
 				"org.jboss.naming:org.jnp.interfaces");
-		connectionFactory.getDriverProperties().put("name",
-				"XAConnectionFactory");
-		connectionFactory.setUseTmJoin(true);
-		connectionFactory.init();
-		ds1 = new PoolingDataSource();
-		ds1.setUniqueName("jdbc/testDS1");
-		ds1.setClassName("org.h2.jdbcx.JdbcDataSource");
-		ds1.setMaxPoolSize(3);
-		ds1.setAllowLocalTransactions(true);
-		ds1.getDriverProperties().put("user", "sa");
-		ds1.getDriverProperties().put("password", "sasa");
-		ds1.getDriverProperties().put("URL", "jdbc:h2:mem:mydb");
-		ds1.setUseTmJoin(true);
-		ds1.init();
+		pcf.init();
+		System.setProperty("java.naming.factory.initial",
+				"bitronix.tm.jndi.BitronixInitialContextFactory");
+		ConnectionFactory factory = (ConnectionFactory) new InitialContext()
+				.lookup("hornet");
+		System.setProperty("java.naming.factory.initial",
+				"org.jnp.interfaces.NamingContextFactory");
+		this.connectionFactory = pcf;
 
-		// System.setProperty("java.naming.factory.initial",
-		// "bitronix.tm.jndi.BitronixInitialContextFactory");
-		emf = Persistence
-				.createEntityManagerFactory("org.jbpm.persistence.jpa");
-
-		env = KnowledgeBaseFactory.newEnvironment();
-		env.set(EnvironmentName.ENTITY_MANAGER_FACTORY, emf);
-		env.set(EnvironmentName.TRANSACTION_MANAGER,
-				TransactionManagerServices.getTransactionManager());
-
-		emfTask = Persistence.createEntityManagerFactory("org.jbpm.task");
-		taskService = new TaskService(emfTask,
-				SystemEventListenerFactory.getSystemEventListener());
-		taskSession = taskService.createSession();
-		MockUserInfo userInfo = new MockUserInfo();
-
-		taskService.setUserinfo(userInfo);
-
-		this.fillUsersAndGroups(taskSession);
-
+		TransactionManager btm = TransactionManagerServices.getTransactionManager();
 		Properties serverProperties = new Properties();
 		serverProperties.setProperty("JMSTaskServer.connectionFactory",
-				"XAConnectionFactory");
+				"hornet");
 		serverProperties.setProperty("JMSTaskServer.transacted", "true");
 		serverProperties.setProperty("JMSTaskServer.acknowledgeMode",
 				"AUTO_ACKNOWLEDGE");
@@ -174,18 +176,29 @@ public abstract class BaseHumanTaskTest {
 				"tasksResponseQueue");
 		// System.setProperty("java.naming.factory.initial",
 		// "org.jnp.interfaces.NamingContextFactory");
-		this.server = new JMSTaskServer(taskService, serverProperties, context);
+		emfTask = Persistence.createEntityManagerFactory("org.jbpm.task");
+		taskService = new TaskService(emfTask,
+				SystemEventListenerFactory.getSystemEventListener());
+		taskSession = taskService.createSession();
+		System.setProperty("java.naming.factory.initial",
+				"bitronix.tm.jndi.BitronixInitialContextFactory");
+		Context ctx = new InitialContext();
+		this.server = new JMSTaskServer(taskService, serverProperties, ctx);
 		Thread thread = new Thread(server);
 		thread.start();
-		System.out.println("Waiting for the HornetQTask Server to come up");
-		while (!server.isRunning()) {
-			System.out.print(".");
-			Thread.sleep(50);
-		}
+		
+		
+		
+		
+		MockUserInfo userInfo = new MockUserInfo();
+
+		taskService.setUserinfo(userInfo);
+
+		this.fillUsersAndGroups(taskSession);
 
 		Properties clientProperties = new Properties();
 		clientProperties.setProperty("JMSTaskClient.connectionFactory",
-				"XAConnectionFactory");
+				"hornet");
 		clientProperties.setProperty("JMSTaskClient.transactedQueue", "true");
 		clientProperties.setProperty("JMSTaskClient.acknowledgeMode",
 				"AUTO_ACKNOWLEDGE");
@@ -195,12 +208,57 @@ public abstract class BaseHumanTaskTest {
 		this.client = new TaskClient(new JMSTaskClientConnector(
 				"testConnector", new JMSTaskClientHandler(
 						SystemEventListenerFactory.getSystemEventListener()),
-				clientProperties, context));
+				clientProperties, ctx));
+		// System.setProperty("java.naming.factory.initial",
+		// "org.jnp.interfaces.NamingContextFactory");
 		try {
 			this.client.connect("127.0.0.1", 5445);
 		} catch (IllegalStateException e) {
 			// Already connected
 		}
+		TaskClient tc = this.client;
+		Task task = new Task();
+		List<I18NText> names1 = new ArrayList<I18NText>();
+		I18NText text1 = new I18NText("en-UK", "tarea1");
+		names1.add(text1);
+		task.setNames(names1);
+		TaskData taskData = new TaskData();
+		taskData.setStatus(Status.Created);
+		taskData.setCreatedBy(new User("usr0"));
+		taskData.setActualOwner(new User("usr0"));
+		task.setTaskData(taskData);
+		ContentData data = new ContentData();
+		Thread.sleep(2000);
+		BlockingAddTaskResponseHandler addTaskHandler = new BlockingAddTaskResponseHandler();
+		tc.addTask(task, data, addTaskHandler);
+		System.out.println("-----LLAMAR AL TASK ID-----");
+		Thread.sleep(2000);
+		long taskId = addTaskHandler.getTaskId();
+		Assert.assertEquals(1L, taskId);
+
+//		Properties serverProperties = new Properties();
+//		serverProperties.setProperty("JMSTaskServer.connectionFactory",
+//				"hornet");
+//		serverProperties.setProperty("JMSTaskServer.transacted", "true");
+//		serverProperties.setProperty("JMSTaskServer.acknowledgeMode",
+//				"AUTO_ACKNOWLEDGE");
+//		serverProperties.setProperty("JMSTaskServer.queueName", "tasksQueue");
+//		serverProperties.setProperty("JMSTaskServer.responseQueueName",
+//				"tasksResponseQueue");
+//		// System.setProperty("java.naming.factory.initial",
+//		// "org.jnp.interfaces.NamingContextFactory");
+//		System.setProperty("java.naming.factory.initial",
+//				"bitronix.tm.jndi.BitronixInitialContextFactory");
+//		Context ctx = new InitialContext();
+//		this.server = new JMSTaskServer(taskService, serverProperties, ctx);
+//		Thread thread = new Thread(server);
+//		thread.start();
+//		System.out.println("Waiting for the HornetQTask Server to come up");
+//		while (!server.isRunning()) {
+//			System.out.print(".");
+//			Thread.sleep(50);
+//		}
+//
 	}
 
 	private void startJornet() {
@@ -282,12 +340,12 @@ public abstract class BaseHumanTaskTest {
 			this.fileLogger.close();
 		}
 
-		emf.close();
+//		emf.close();
 		// if (emfTask != null) {
 		// emfTask.close();
 		// }
 		connectionFactory.close();
-		ds1.close();
+//		ds1.close();
 
 		server.stop();
 		this.client.disconnect();
