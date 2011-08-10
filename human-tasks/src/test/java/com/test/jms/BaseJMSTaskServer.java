@@ -145,6 +145,7 @@ public abstract class BaseJMSTaskServer extends TaskServer {
 				Destination destination = session.createQueue(queueName);
 				Destination responseQueue = session
 						.createQueue(responseQueueName);
+				System.out.println("Session:" + this.session);
 				this.consumer = session.createConsumer(destination);
 				Message clientMessage = null;
 				try {
@@ -153,10 +154,10 @@ public abstract class BaseJMSTaskServer extends TaskServer {
 						System.out.println("received message ");
 						Object object = readMessage(clientMessage);
 						String selector = readSelector(clientMessage);
-						TransactionManagerServices.getTransactionManager()
-								.commit();
 						this.handler.messageReceived(session, object,
 								responseQueue, selector);
+						TransactionManagerServices.getTransactionManager()
+						.commit();
 					}
 				} finally {
 					consumer.close();

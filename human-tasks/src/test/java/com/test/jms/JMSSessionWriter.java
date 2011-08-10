@@ -30,7 +30,7 @@ public class JMSSessionWriter implements SessionWriter {
 
 	public void write(Object message) throws IOException {
 		try {
-			TransactionManagerServices.getTransactionManager().begin();
+//			TransactionManagerServices.getTransactionManager().begin();
 			ConnectionFactory factory = (ConnectionFactory) new InitialContext().lookup("hornet");
 
 			Connection connection = factory.createConnection();
@@ -45,7 +45,7 @@ public class JMSSessionWriter implements SessionWriter {
 			
 			clientMessage.setStringProperty(TaskServiceConstants.SELECTOR_NAME, this.selector);
 			producer.send(clientMessage);
-			TransactionManagerServices.getTransactionManager().commit();
+//			TransactionManagerServices.getTransactionManager().commit();
 		} catch (JMSException e) {
 			throw new IOException("Unable to create message: " + e.getMessage(), e);
 		}catch (Exception e) {

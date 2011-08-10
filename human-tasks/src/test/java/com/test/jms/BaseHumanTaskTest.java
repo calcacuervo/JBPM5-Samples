@@ -178,6 +178,7 @@ public class BaseHumanTaskTest {
 		clientProperties.setProperty("JMSTaskClient.queueName", "tasksQueue");
 		clientProperties.setProperty("JMSTaskClient.responseQueueName",
 				"tasksResponseQueue");
+		ctx = new InitialContext();
 		this.client = new TaskClient(new JMSTaskClientConnector(
 				"testConnector", new JMSTaskClientHandler(
 						SystemEventListenerFactory.getSystemEventListener()),

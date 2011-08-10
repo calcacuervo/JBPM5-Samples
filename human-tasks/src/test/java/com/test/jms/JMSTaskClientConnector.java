@@ -149,6 +149,7 @@ public class JMSTaskClientConnector implements TaskClientConnector {
 			responseThread.start();
 			message.setStringProperty(TaskServiceConstants.SELECTOR_NAME, this.selector);
 			message.setObject((Serializable)object);
+			System.out.println("Session:" + this.session);
 			this.producer.send(message);
 			logger.debug("+++SE TERMINO EL ADD WRITE LOCO+++");
 			System.out.println(object);
@@ -188,12 +189,13 @@ public class JMSTaskClientConnector implements TaskClientConnector {
 			MessageConsumer consumer = null;
 			try {
 				TransactionManagerServices.getTransactionManager().begin();
+				Session session = connection.createSession(true, Session.AUTO_ACKNOWLEDGE);
 				consumer = session.createConsumer(responseQueue, " " + TaskServiceConstants.SELECTOR_NAME + " like '" + selector + "%' ");
 				ObjectMessage serverMessage = (ObjectMessage) consumer.receive();
-				TransactionManagerServices.getTransactionManager().commit();
 				if (serverMessage != null) {
 					((JMSTaskClientHandler) handler).messageReceived(session, readMessage(serverMessage), responseQueue, selector);
 				}
+				TransactionManagerServices.getTransactionManager().commit();
 			} catch (JMSException e) {
 				if (!"102".equals(e.getErrorCode())) {
 					throw new RuntimeException("No se pudo recibir respuesta JMS", e);
