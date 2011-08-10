@@ -3,9 +3,7 @@ package com.test.jms;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 
 import javax.jms.ConnectionFactory;
 import javax.naming.Context;
@@ -61,7 +59,7 @@ import org.jbpm.task.service.responsehandlers.BlockingAddTaskResponseHandler;
 import org.jnp.server.Main;
 import org.jnp.server.NamingBeanImpl;
 import org.junit.After;
-import org.junit.Before;
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,10 +67,9 @@ import bitronix.tm.TransactionManagerServices;
 import bitronix.tm.resource.jdbc.PoolingDataSource;
 import bitronix.tm.resource.jms.PoolingConnectionFactory;
 
-import com.sun.org.apache.regexp.internal.RESyntaxException;
 import com.test.MockUserInfo;
 
-public abstract class BaseHumanTaskTest {
+public class BaseHumanTaskTest {
 	public final static String PROCESSES_PKG_KEY = "processes";
 	private static final Logger logger = LoggerFactory
 			.getLogger(BaseJMSTaskServer.class);
@@ -97,8 +94,6 @@ public abstract class BaseHumanTaskTest {
 	private EntityManagerFactory emfTask;
 	protected Environment env;
 
-	protected abstract String[] getProcessPaths();
-
 	protected KnowledgeBase createKnowledgeBase() {
 		KnowledgeBuilder kbuilder = KnowledgeBuilderFactory
 				.newKnowledgeBuilder();
@@ -119,29 +114,9 @@ public abstract class BaseHumanTaskTest {
 		return kbase;
 	}
 
-	@Before
-	public void setUp() throws Exception {
+	@Test
+	public void humanTaskWithJMS() throws Exception {
 		startJornet();
-//		ds1 = new PoolingDataSource();
-//		ds1.setUniqueName("jdbc/testDS1");
-//		ds1.setClassName("org.h2.jdbcx.JdbcDataSource");
-//		ds1.setMaxPoolSize(3);
-//		ds1.setAllowLocalTransactions(true);
-//		ds1.getDriverProperties().put("user", "sa");
-//		ds1.getDriverProperties().put("password", "sasa");
-//		ds1.getDriverProperties().put("URL", "jdbc:h2:mem:mydb");
-//		ds1.setUseTmJoin(true);
-//		ds1.init();
-//
-//		// System.setProperty("java.naming.factory.initial",
-//		// "bitronix.tm.jndi.BitronixInitialContextFactory");
-//		emf = Persistence
-//				.createEntityManagerFactory("org.jbpm.persistence.jpa");
-//
-//		env = KnowledgeBaseFactory.newEnvironment();
-//		env.set(EnvironmentName.ENTITY_MANAGER_FACTORY, emf);
-//		env.set(EnvironmentName.TRANSACTION_MANAGER,
-//				TransactionManagerServices.getTransactionManager());
 
 		final PoolingConnectionFactory pcf = new PoolingConnectionFactory();
 		pcf.setClassName("bitronix.tm.resource.jms.JndiXAConnectionFactory");
@@ -162,7 +137,7 @@ public abstract class BaseHumanTaskTest {
 				.lookup("hornet");
 		System.setProperty("java.naming.factory.initial",
 				"org.jnp.interfaces.NamingContextFactory");
-		this.connectionFactory = pcf;
+		this.connectionFactory = (PoolingConnectionFactory)factory;
 
 		TransactionManager btm = TransactionManagerServices.getTransactionManager();
 		Properties serverProperties = new Properties();
@@ -186,8 +161,6 @@ public abstract class BaseHumanTaskTest {
 		this.server = new JMSTaskServer(taskService, serverProperties, ctx);
 		Thread thread = new Thread(server);
 		thread.start();
-		
-		
 		
 		
 		MockUserInfo userInfo = new MockUserInfo();
@@ -231,34 +204,12 @@ public abstract class BaseHumanTaskTest {
 		Thread.sleep(2000);
 		BlockingAddTaskResponseHandler addTaskHandler = new BlockingAddTaskResponseHandler();
 		tc.addTask(task, data, addTaskHandler);
-		System.out.println("-----LLAMAR AL TASK ID-----");
+		System.out.println("-----GET TASK ID-----");
 		Thread.sleep(2000);
 		long taskId = addTaskHandler.getTaskId();
 		Assert.assertEquals(1L, taskId);
 
-//		Properties serverProperties = new Properties();
-//		serverProperties.setProperty("JMSTaskServer.connectionFactory",
-//				"hornet");
-//		serverProperties.setProperty("JMSTaskServer.transacted", "true");
-//		serverProperties.setProperty("JMSTaskServer.acknowledgeMode",
-//				"AUTO_ACKNOWLEDGE");
-//		serverProperties.setProperty("JMSTaskServer.queueName", "tasksQueue");
-//		serverProperties.setProperty("JMSTaskServer.responseQueueName",
-//				"tasksResponseQueue");
-//		// System.setProperty("java.naming.factory.initial",
-//		// "org.jnp.interfaces.NamingContextFactory");
-//		System.setProperty("java.naming.factory.initial",
-//				"bitronix.tm.jndi.BitronixInitialContextFactory");
-//		Context ctx = new InitialContext();
-//		this.server = new JMSTaskServer(taskService, serverProperties, ctx);
-//		Thread thread = new Thread(server);
-//		thread.start();
-//		System.out.println("Waiting for the HornetQTask Server to come up");
-//		while (!server.isRunning()) {
-//			System.out.print(".");
-//			Thread.sleep(50);
-//		}
-//
+
 	}
 
 	private void startJornet() {
@@ -345,17 +296,26 @@ public abstract class BaseHumanTaskTest {
 		// emfTask.close();
 		// }
 		connectionFactory.close();
+		context.close();
 //		ds1.close();
 
 		server.stop();
 		this.client.disconnect();
 	}
 
-	protected abstract String[] getTestUsers();
+	protected String[] getTestUsers() {
+		return new String[] { "usr0", "testUser2", "testUser3",
+				"Administrator" };
+	}
 
-	protected abstract String[] getTestGroups();
+	protected String[] getTestGroups() {
+		return new String[] { "testGroup1", "testGroup2" };
+	}
 
-	protected abstract Map<String, Set<String>> getTestUserGroupsAssignments();
+	protected String[] getProcessPaths() {
+		return new String[] { /**"two-tasks-human-task-test.bpmn", "two-tasks-human-task-assigned-to-actortest.bpmn"**/ };
+	}
+
 
 	private void fillUsersAndGroups(TaskServiceSession session) {
 		for (String group : this.getTestGroups()) {

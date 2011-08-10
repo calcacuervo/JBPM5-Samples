@@ -46,6 +46,66 @@ public abstract class BaseJMSTaskServer extends TaskServer {
 		this.context = context;
 	}
 
+	private Object readMessage(Message msgReceived) throws IOException {
+		ObjectMessage strmMsgReceived = (ObjectMessage) msgReceived;
+		try {
+			return strmMsgReceived.getObject();
+		} catch (JMSException e) {
+			throw new IOException("Error reading message");
+		}
+	}
+
+	private String readSelector(Message msgReceived) throws JMSException {
+		return msgReceived
+				.getStringProperty(TaskServiceConstants.SELECTOR_NAME);
+	}
+
+	public void start() throws Exception {
+//		Context ctx = this.context;
+//		if (this.context == null) {
+//			ctx = new InitialContext();
+//		}
+//		String connFactoryName = this.connectionProperties
+//				.getProperty(TaskServiceConstants.TASK_SERVER_CONNECTION_FACTORY_NAME);
+//		boolean transacted = Boolean.valueOf(this.connectionProperties
+//				.getProperty(TaskServiceConstants.TASK_SERVER_TRANSACTED_NAME));
+//		String ackModeString = this.connectionProperties
+//				.getProperty(TaskServiceConstants.TASK_SERVER_ACKNOWLEDGE_MODE_NAME);
+//		String queueName = this.connectionProperties
+//				.getProperty(TaskServiceConstants.TASK_SERVER_QUEUE_NAME_NAME);
+//		String responseQueueName = this.connectionProperties
+//				.getProperty(TaskServiceConstants.TASK_SERVER_RESPONSE_QUEUE_NAME_NAME);
+//		int ackMode = Session.DUPS_OK_ACKNOWLEDGE; // default
+//		if ("AUTO_ACKNOWLEDGE".equals(ackModeString)) {
+//			ackMode = Session.AUTO_ACKNOWLEDGE;
+//		} else if ("CLIENT_ACKNOWLEDGE".equals(ackModeString)) {
+//			ackMode = Session.CLIENT_ACKNOWLEDGE;
+//		}
+//
+//		ConnectionFactory factory = (ConnectionFactory) ctx
+//				.lookup(connFactoryName);
+//		try {
+//			connection = factory.createConnection();
+//			connection.start();
+//			session = connection.createSession(transacted, ackMode);
+//			this.queue = session.createQueue(queueName);
+//			// this.responseQueue = this.session.createQueue(responseQueueName);
+//			this.consumer = this.session.createConsumer(this.queue);
+//		} catch (JMSException e) {
+//			throw new RuntimeException(
+//					"No se pudo levantar la cola servidora del JMSTaskServer",
+//					e);
+//		}
+//		this.running = true;
+	}
+
+	public void stop() throws Exception {
+		if (this.running) {
+			this.running = false;
+			closeAll();
+		}
+	}
+
 	public void run() {
 		try {
 			String connFactoryName = this.connectionProperties
@@ -78,14 +138,14 @@ public abstract class BaseJMSTaskServer extends TaskServer {
 						.getCurrentTransaction() == null) {
 					TransactionManagerServices.getTransactionManager().begin();
 				}
-				Connection connection = factory.createConnection();
+				this.connection = factory.createConnection();
 				connection.start();
-				Session session = connection.createSession(true,
+				this.session = connection.createSession(true,
 						Session.AUTO_ACKNOWLEDGE);
 				Destination destination = session.createQueue(queueName);
 				Destination responseQueue = session
 						.createQueue(responseQueueName);
-				MessageConsumer consumer = session.createConsumer(destination);
+				this.consumer = session.createConsumer(destination);
 				Message clientMessage = null;
 				try {
 					clientMessage = consumer.receive();
@@ -109,29 +169,7 @@ public abstract class BaseJMSTaskServer extends TaskServer {
 		}
 
 	}
-
-	private Object readMessage(Message msgReceived) throws IOException {
-		ObjectMessage strmMsgReceived = (ObjectMessage) msgReceived;
-		try {
-			return strmMsgReceived.getObject();
-		} catch (JMSException e) {
-			throw new IOException("Error reading message");
-		}
-	}
-
-	private String readSelector(Message msgReceived) throws JMSException {
-		return msgReceived
-				.getStringProperty(TaskServiceConstants.SELECTOR_NAME);
-	}
-
-
-	public void stop() throws Exception {
-		if (this.running) {
-			this.running = false;
-			closeAll();
-		}
-	}
-
+	
 	private void closeAll() throws JMSException {
 		this.consumer.close();
 		this.session.close();
