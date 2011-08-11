@@ -25,8 +25,6 @@ import org.jbpm.task.service.jms.TaskServiceConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import bitronix.tm.TransactionManagerServices;
-
 public class JMSTaskClientConnector implements TaskClientConnector {
 
 	private static final Logger logger = LoggerFactory
@@ -218,7 +216,7 @@ public class JMSTaskClientConnector implements TaskClientConnector {
 				// is a new thread and it won't have any other transaction
 				// attached.
 				if (tm != null) {
-				tm.begin();
+					tm.begin();
 				}
 				Session session = connection.createSession(true,
 						Session.AUTO_ACKNOWLEDGE);

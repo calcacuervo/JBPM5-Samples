@@ -36,7 +36,7 @@ public class JMSTaskServerHandler {
 			producer = session.createProducer(destination);
 			this.producers.put(name, producer);
 		}
-		System.out.println("{{{{{MessageReceived in server!");
+		System.out.println("MessageReceived in server!");
 		this.handler.messageReceived(new JMSSessionWriter(connection, selector), message);
 	}
 }

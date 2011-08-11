@@ -116,7 +116,7 @@ public class BaseHumanTaskTest {
 
 	@Test
 	public void humanTaskWithJMS() throws Exception {
-		startJornet();
+		startHornet();
 
 		final PoolingConnectionFactory pcf = new PoolingConnectionFactory();
 		pcf.setClassName("bitronix.tm.resource.jms.JndiXAConnectionFactory");
@@ -150,8 +150,6 @@ public class BaseHumanTaskTest {
 		serverProperties.setProperty("JMSTaskServer.queueName", "tasksQueue");
 		serverProperties.setProperty("JMSTaskServer.responseQueueName",
 				"tasksResponseQueue");
-		// System.setProperty("java.naming.factory.initial",
-		// "org.jnp.interfaces.NamingContextFactory");
 		emfTask = Persistence.createEntityManagerFactory("org.jbpm.task");
 		taskService = new TaskService(emfTask,
 				SystemEventListenerFactory.getSystemEventListener());
@@ -159,7 +157,7 @@ public class BaseHumanTaskTest {
 		System.setProperty("java.naming.factory.initial",
 				"bitronix.tm.jndi.BitronixInitialContextFactory");
 		Context ctx = new InitialContext();
-		this.server = new JMSTaskServer(taskService, serverProperties, ctx);
+		this.server = new JMSTaskServer(taskService, serverProperties, ctx, btm);
 		Thread thread = new Thread(server);
 		thread.start();
 
@@ -210,7 +208,7 @@ public class BaseHumanTaskTest {
 
 	}
 
-	private void startJornet() {
+	private void startHornet() {
 		try {
 
 			// Step 1. Create HornetQ core configuration, and set the properties

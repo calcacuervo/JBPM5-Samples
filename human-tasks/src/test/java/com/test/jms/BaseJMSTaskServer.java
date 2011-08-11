@@ -10,20 +10,16 @@ import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageConsumer;
 import javax.jms.ObjectMessage;
-import javax.jms.Queue;
 import javax.jms.Session;
 import javax.naming.Context;
 import javax.naming.InitialContext;
+import javax.transaction.SystemException;
 import javax.transaction.TransactionManager;
 
 import org.jbpm.task.service.TaskServer;
 import org.jbpm.task.service.jms.TaskServiceConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import bitronix.tm.TransactionManagerServices;
-
-import com.test.jms.extra.Consumer;
 
 public abstract class BaseJMSTaskServer extends TaskServer {
 
@@ -36,12 +32,14 @@ public abstract class BaseJMSTaskServer extends TaskServer {
 	private Connection connection;
 	private Session session;
 	private MessageConsumer consumer;
+	private TransactionManager tm;
 
 	public BaseJMSTaskServer(JMSTaskServerHandler handler,
-			Properties properties, Context context) {
+			Properties properties, Context context, TransactionManager tm) {
 		this.handler = handler;
 		this.connectionProperties = properties;
 		this.context = context;
+		this.tm = tm;
 	}
 
 	private Object readMessage(Message msgReceived) throws IOException {
@@ -98,10 +96,7 @@ public abstract class BaseJMSTaskServer extends TaskServer {
 			this.connection = factory.createConnection();
 			connection.start();
 			while (this.isRunning()) {
-				if (TransactionManagerServices.getTransactionManager()
-						.getCurrentTransaction() == null) {
-					TransactionManagerServices.getTransactionManager().begin();
-				}
+				tm.begin();
 				this.session = connection.createSession(transacted,
 						ackMode);
 				Destination destination = session.createQueue(queueName);
@@ -118,17 +113,25 @@ public abstract class BaseJMSTaskServer extends TaskServer {
 						String selector = readSelector(clientMessage);
 						this.handler.messageReceived(connection, session, object,
 								responseQueue, selector);
-						TransactionManagerServices.getTransactionManager()
-						.commit();
 					}
 				} finally {
 					consumer.close();
 					session.close();
 					connection.close();
+					tm.commit();
 				}
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
+			try {
+				tm.rollback();
+			} catch (IllegalStateException e1) {
+				e1.printStackTrace();
+			} catch (SecurityException e1) {
+				e1.printStackTrace();
+			} catch (SystemException e1) {
+				e1.printStackTrace();
+			}
 		}
 
 	}
