@@ -13,8 +13,10 @@ import javax.jms.MessageProducer;
 import javax.jms.ObjectMessage;
 import javax.jms.Queue;
 import javax.jms.Session;
+import javax.management.RuntimeErrorException;
 import javax.naming.Context;
 import javax.naming.InitialContext;
+import javax.transaction.SystemException;
 import javax.transaction.TransactionManager;
 
 import org.jbpm.task.service.BaseHandler;
@@ -238,8 +240,20 @@ public class JMSTaskClientConnector implements TaskClientConnector {
 							"No se pudo recibir respuesta JMS", e);
 				}
 				logger.info(e.getMessage());
+				try {
+					tm.rollback();
+				} catch (Exception e1) {
+					logger.equals(e1);
+					throw new RuntimeException(e);
+				}
 				return;
 			} catch (Exception e) {
+				try {
+					tm.rollback();
+				} catch (Exception e1) {
+					logger.equals(e1);
+					throw new RuntimeException(e);
+				}
 				throw new RuntimeException(
 						"Error inesperado recibiendo respuesta JMS", e);
 			} finally {
