@@ -6,6 +6,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import javax.transaction.NotSupportedException;
+import javax.transaction.SystemException;
+import javax.transaction.TransactionManager;
+
 import org.jbpm.task.AccessType;
 import org.jbpm.task.query.TaskSummary;
 import org.jbpm.task.service.ContentData;
@@ -27,13 +31,20 @@ public class TaskClientWrapper {
 	 */
 	private TaskClient client;
 
+	private boolean surroundWithTransacion = false;
+	
+	private TransactionManager transactionManager;
 	/**
 	 * Creates a new {@link TaskClientWrapper} instance.
 	 * 
 	 * @param taskClient
 	 */
-	public TaskClientWrapper(final TaskClient taskClient) {
+	public TaskClientWrapper(final TaskClient taskClient, TransactionManager transactionManager) {
 		this.client = taskClient;
+		if (transactionManager != null) {
+			this.surroundWithTransacion = true;
+			this.transactionManager = transactionManager;
+		}
 	}
 
 	public void connect(String ipAddress, int port) {
@@ -57,7 +68,21 @@ public class TaskClientWrapper {
 	 */
 	public void claim(long taskId, final String userId, List<String> groups) {
 		BlockingTaskOperationResponseHandler claimOperationResponseHandler = new BlockingTaskOperationResponseHandler();
+		if (this.surroundWithTransacion) {
+			try {
+				this.transactionManager.begin();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
 		client.claim(taskId, userId, groups, claimOperationResponseHandler);
+		if (this.surroundWithTransacion) {
+			try {
+				this.transactionManager.commit();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
 		claimOperationResponseHandler.waitTillDone(1000);
 	}
 
@@ -69,7 +94,21 @@ public class TaskClientWrapper {
 	 */
 	public void start(long taskId, final String userId) {
 		BlockingTaskOperationResponseHandler startOperationResponseHandler = new BlockingTaskOperationResponseHandler();
+		if (this.surroundWithTransacion) {
+			try {
+				this.transactionManager.begin();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
 		client.start(taskId, userId, startOperationResponseHandler);
+		if (this.surroundWithTransacion) {
+			try {
+				this.transactionManager.commit();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
 		startOperationResponseHandler.waitTillDone(1000);
 	}
 
@@ -94,7 +133,21 @@ public class TaskClientWrapper {
 
 		}
 		BlockingTaskOperationResponseHandler completeOperationResponseHandler = new BlockingTaskOperationResponseHandler();
+		if (this.surroundWithTransacion) {
+			try {
+				this.transactionManager.begin();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
 		client.complete(taskId, userId, null, completeOperationResponseHandler);
+		if (this.surroundWithTransacion) {
+			try {
+				this.transactionManager.commit();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
 		completeOperationResponseHandler.waitTillDone(1000);
 	}
 
@@ -106,12 +159,41 @@ public class TaskClientWrapper {
 		BlockingTaskSummaryResponseHandler responseHandler = null;
 		if (groups.isEmpty()) {
 			responseHandler = new BlockingTaskSummaryResponseHandler();
+			if (this.surroundWithTransacion) {
+				try {
+					this.transactionManager.begin();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
 			client.getTasksAssignedAsPotentialOwner(userId, language,
 					responseHandler);
+			if (this.surroundWithTransacion) {
+				try {
+					this.transactionManager.commit();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
 		} else {
 			responseHandler = new BlockingTaskSummaryResponseHandler();
+			if (this.surroundWithTransacion) {
+				try {
+					this.transactionManager.begin();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
 			client.getTasksAssignedAsPotentialOwner(userId, groups, language,
 					responseHandler);
+			if (this.surroundWithTransacion) {
+				try {
+					System.out.println("TESTTTTTT");
+					this.transactionManager.commit();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
 			responseHandler.waitTillDone(1000);
 		}
 
@@ -124,7 +206,21 @@ public class TaskClientWrapper {
 			language = "en-UK";
 		}
 		BlockingTaskSummaryResponseHandler responseHandler = new BlockingTaskSummaryResponseHandler();
+		if (this.surroundWithTransacion) {
+			try {
+				this.transactionManager.begin();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
 		client.getTasksOwned(userId, language, responseHandler);
+		if (this.surroundWithTransacion) {
+			try {
+				this.transactionManager.commit();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
 		responseHandler.waitTillDone(1000);
 		List<TaskSummary> tasks = responseHandler.getResults();
 		return tasks;

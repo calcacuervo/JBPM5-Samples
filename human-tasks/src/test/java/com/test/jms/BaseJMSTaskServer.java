@@ -173,7 +173,7 @@ public abstract class BaseJMSTaskServer extends TaskServer {
 	
 	private void closeAll() throws JMSException {
 		this.consumer.close();
-		this.session.close();
+//		this.session.close();
 		this.connection.close();
 	}
 

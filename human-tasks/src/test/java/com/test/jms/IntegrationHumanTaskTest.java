@@ -10,6 +10,8 @@ import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
+import javax.transaction.NotSupportedException;
+import javax.transaction.SystemException;
 import javax.transaction.TransactionManager;
 
 import junit.framework.Assert;
@@ -24,7 +26,12 @@ import org.drools.builder.ResourceType;
 import org.drools.compiler.ProcessBuilderFactory;
 import org.drools.io.impl.ClassPathResource;
 import org.drools.logger.KnowledgeRuntimeLogger;
+import org.drools.logger.KnowledgeRuntimeLoggerFactory;
+import org.drools.persistence.jpa.JPAKnowledgeService;
 import org.drools.runtime.Environment;
+import org.drools.runtime.EnvironmentName;
+import org.drools.runtime.StatefulKnowledgeSession;
+import org.drools.runtime.process.ProcessInstance;
 import org.drools.runtime.process.ProcessRuntimeFactory;
 import org.hornetq.api.core.TransportConfiguration;
 import org.hornetq.core.config.Configuration;
@@ -41,24 +48,26 @@ import org.hornetq.jms.server.config.impl.ConnectionFactoryConfigurationImpl;
 import org.hornetq.jms.server.config.impl.JMSConfigurationImpl;
 import org.hornetq.jms.server.config.impl.QueueConfigurationImpl;
 import org.hornetq.jms.server.impl.JMSServerManagerImpl;
+import org.jbpm.process.audit.JPAProcessInstanceDbLog;
+import org.jbpm.process.audit.JPAWorkingMemoryDbLogger;
+import org.jbpm.process.audit.NodeInstanceLog;
+import org.jbpm.process.audit.ProcessInstanceLog;
 import org.jbpm.process.builder.ProcessBuilderFactoryServiceImpl;
 import org.jbpm.process.instance.ProcessRuntimeFactoryServiceImpl;
+import org.jbpm.process.workitem.wsht.CommandBasedWSHumanTaskHandler;
 import org.jbpm.task.Group;
-import org.jbpm.task.I18NText;
 import org.jbpm.task.Status;
-import org.jbpm.task.Task;
-import org.jbpm.task.TaskData;
 import org.jbpm.task.User;
-import org.jbpm.task.service.ContentData;
+import org.jbpm.task.query.TaskSummary;
 import org.jbpm.task.service.TaskClient;
 import org.jbpm.task.service.TaskServer;
 import org.jbpm.task.service.TaskService;
 import org.jbpm.task.service.TaskServiceSession;
 import org.jbpm.task.service.jms.JMSTaskClientHandler;
-import org.jbpm.task.service.responsehandlers.BlockingAddTaskResponseHandler;
 import org.jnp.server.Main;
 import org.jnp.server.NamingBeanImpl;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,13 +77,14 @@ import bitronix.tm.resource.jdbc.PoolingDataSource;
 import bitronix.tm.resource.jms.PoolingConnectionFactory;
 
 import com.test.MockUserInfo;
+import com.test.TaskClientWrapper;
 
-public class BaseHumanTaskTest {
+public class IntegrationHumanTaskTest {
 	public final static String PROCESSES_PKG_KEY = "processes";
 	private static final Logger logger = LoggerFactory
 			.getLogger(BaseJMSTaskServer.class);
 	protected TaskServer server;
-	protected TaskClient client;
+	protected TaskClientWrapper client;
 	protected TaskService taskService;
 	protected TaskServiceSession taskSession;
 
@@ -93,6 +103,10 @@ public class BaseHumanTaskTest {
 	private EntityManagerFactory emf;
 	private EntityManagerFactory emfTask;
 	protected Environment env;
+
+	private JMSServerManager jmsServer;
+
+	private Main jndiServer;
 
 	protected KnowledgeBase createKnowledgeBase() {
 		KnowledgeBuilder kbuilder = KnowledgeBuilderFactory
@@ -114,14 +128,14 @@ public class BaseHumanTaskTest {
 		return kbase;
 	}
 
-	@Test
-	public void humanTaskWithJMS() throws Exception {
+	@Before
+	public void setUp() throws Exception {
 		startJornet();
 
 		final PoolingConnectionFactory pcf = new PoolingConnectionFactory();
 		pcf.setClassName("bitronix.tm.resource.jms.JndiXAConnectionFactory");
 		pcf.setUniqueName("hornet");
-		pcf.setMaxPoolSize(5);
+		pcf.setMaxPoolSize(500);
 		pcf.getDriverProperties().setProperty("name", "XAConnectionFactory");
 		pcf.getDriverProperties().setProperty("initialContextFactory",
 				"org.jnp.interfaces.NamingContextFactory");
@@ -135,11 +149,30 @@ public class BaseHumanTaskTest {
 				"bitronix.tm.jndi.BitronixInitialContextFactory");
 		ConnectionFactory factory = (ConnectionFactory) new InitialContext()
 				.lookup("hornet");
+		this.connectionFactory = (PoolingConnectionFactory) factory;
+
+		ds1 = new PoolingDataSource();
+		ds1.setUniqueName("jdbc/testDS1");
+		ds1.setClassName("org.h2.jdbcx.JdbcDataSource");
+		ds1.setMaxPoolSize(3);
+		ds1.setAllowLocalTransactions(true);
+		ds1.getDriverProperties().put("user", "sa");
+		ds1.getDriverProperties().put("password", "sasa");
+		ds1.getDriverProperties().put("URL", "jdbc:h2:mem:mydb");
+		ds1.init();
+
+		emf = Persistence
+				.createEntityManagerFactory("org.jbpm.persistence.jpa");
+
+		env = KnowledgeBaseFactory.newEnvironment();
+		env.set(EnvironmentName.ENTITY_MANAGER_FACTORY, emf);
+		env.set(EnvironmentName.TRANSACTION_MANAGER,
+				TransactionManagerServices.getTransactionManager());
+
 		System.setProperty("java.naming.factory.initial",
 				"org.jnp.interfaces.NamingContextFactory");
-		this.connectionFactory = (PoolingConnectionFactory)factory;
-
-		TransactionManager btm = TransactionManagerServices.getTransactionManager();
+		TransactionManager btm = TransactionManagerServices
+				.getTransactionManager();
 		Properties serverProperties = new Properties();
 		serverProperties.setProperty("JMSTaskServer.connectionFactory",
 				"hornet");
@@ -161,8 +194,7 @@ public class BaseHumanTaskTest {
 		this.server = new JMSTaskServer(taskService, serverProperties, ctx);
 		Thread thread = new Thread(server);
 		thread.start();
-		
-		
+
 		MockUserInfo userInfo = new MockUserInfo();
 
 		taskService.setUserinfo(userInfo);
@@ -178,36 +210,16 @@ public class BaseHumanTaskTest {
 		clientProperties.setProperty("JMSTaskClient.queueName", "tasksQueue");
 		clientProperties.setProperty("JMSTaskClient.responseQueueName",
 				"tasksResponseQueue");
-		ctx = new InitialContext();
-		this.client = new TaskClient(new JMSTaskClientConnector(
+		TaskClient taskClient = new TaskClient(new JMSTaskClientConnector(
 				"testConnector", new JMSTaskClientHandler(
 						SystemEventListenerFactory.getSystemEventListener()),
-				clientProperties, ctx, btm));
+				clientProperties, ctx));
+		this.client = new TaskClientWrapper(taskClient, btm);
 		try {
 			this.client.connect("127.0.0.1", 5445);
 		} catch (IllegalStateException e) {
 			// Already connected
 		}
-		TaskClient tc = this.client;
-		Task task = new Task();
-		List<I18NText> names1 = new ArrayList<I18NText>();
-		I18NText text1 = new I18NText("en-UK", "tarea1");
-		names1.add(text1);
-		task.setNames(names1);
-		TaskData taskData = new TaskData();
-		taskData.setStatus(Status.Created);
-		taskData.setCreatedBy(new User("usr0"));
-		taskData.setActualOwner(new User("usr0"));
-		task.setTaskData(taskData);
-		ContentData data = new ContentData();
-		Thread.sleep(2000);
-		BlockingAddTaskResponseHandler addTaskHandler = new BlockingAddTaskResponseHandler();
-		tc.addTask(task, data, addTaskHandler);
-		System.out.println("-----GET TASK ID-----");
-		Thread.sleep(2000);
-		long taskId = addTaskHandler.getTaskId();
-		Assert.assertEquals(1L, taskId);
-
 
 	}
 
@@ -233,7 +245,6 @@ public class BaseHumanTaskTest {
 			naming.start();
 			System.setProperty("java.naming.factory.initial",
 					"bitronix.tm.jndi.BitronixInitialContextFactory");
-			
 			jndiServer = new Main();
 			jndiServer.setNamingInfo(naming);
 			jndiServer.setPort(1099);
@@ -284,25 +295,21 @@ public class BaseHumanTaskTest {
 		}
 	}
 
-	JMSServerManager jmsServer;
-	
-	Main jndiServer;
-	
 	@After
 	public void tearDown() throws Exception {
-
+		System.out.println("TEARING DOWN");
 		if (this.fileLogger != null) {
 			this.fileLogger.close();
 		}
 
-//		emf.close();
+		// emf.close();
 		// if (emfTask != null) {
 		// emfTask.close();
 		// }
 		connectionFactory.close();
 		context.close();
-//		ds1.close();
-		
+		// ds1.close();
+
 		server.stop();
 		this.client.disconnect();
 		this.jndiServer.stop();
@@ -313,7 +320,7 @@ public class BaseHumanTaskTest {
 	}
 
 	protected String[] getTestUsers() {
-		return new String[] { "usr0", "testUser2", "testUser3",
+		return new String[] { "usr0", "testUser1", "testUser2", "testUser3",
 				"Administrator" };
 	}
 
@@ -322,9 +329,8 @@ public class BaseHumanTaskTest {
 	}
 
 	protected String[] getProcessPaths() {
-		return new String[] { /**"two-tasks-human-task-test.bpmn", "two-tasks-human-task-assigned-to-actortest.bpmn"**/ };
+		return new String[] { "two-tasks-human-task-test.bpmn" };
 	}
-
 
 	private void fillUsersAndGroups(TaskServiceSession session) {
 		for (String group : this.getTestGroups()) {
@@ -334,4 +340,79 @@ public class BaseHumanTaskTest {
 			session.addUser(new User(user));
 		}
 	}
+
+	@Test
+	public void jbpmHornetQWithTx() throws InterruptedException,
+			NotSupportedException, SystemException {
+		TransactionManager btm = TransactionManagerServices
+				.getTransactionManager();
+		KnowledgeBase kbase = this.createKnowledgeBase();
+		StatefulKnowledgeSession session = JPAKnowledgeService
+				.newStatefulKnowledgeSession(kbase, null, env);
+
+		// this will log in audit tables
+		new JPAWorkingMemoryDbLogger(session);
+
+		KnowledgeRuntimeLoggerFactory.newConsoleLogger(session);
+
+		// Logger that will give information about the process state, variables,
+		// etc
+		JPAProcessInstanceDbLog processLog = new JPAProcessInstanceDbLog(
+				session.getEnvironment());
+
+		CommandBasedWSHumanTaskHandler wsHumanTaskHandler = new CommandBasedWSHumanTaskHandler(
+				session);
+		wsHumanTaskHandler.setClient(client.getTaskClient());
+		session.getWorkItemManager().registerWorkItemHandler("Human Task",
+				wsHumanTaskHandler);
+		ProcessInstance process = session.createProcessInstance("TwoTasksTest",
+				null);
+		session.insert(process);
+		long processInstanceId = process.getId();
+		session.startProcessInstance(processInstanceId);
+		Thread.sleep(2000);
+		List<String> groupsUser1 = new ArrayList<String>();
+		groupsUser1.add("testGroup1");
+		List<String> groupsUser2 = new ArrayList<String>();
+		groupsUser2.add("testGroup2");
+		List<TaskSummary> tasks = client.getTasksAssignedAsPotentialOwner(
+				"testUser1", "en-UK", groupsUser1);
+
+		Assert.assertEquals(1, tasks.size());
+		this.fullCycleCompleteTask(tasks.get(0).getId(), "testUser1",
+				groupsUser1);
+
+		tasks = client.getTasksOwned("testUser1", "en-UK");
+		Assert.assertEquals(1, tasks.size());
+		Assert.assertEquals(Status.Completed, tasks.get(0).getStatus());
+
+		Thread.sleep(2000);
+		tasks = client.getTasksAssignedAsPotentialOwner("testUser2", "en-UK",
+				groupsUser2);
+
+		Assert.assertEquals(1, tasks.size());
+
+		 Thread.sleep(1000);
+		 this.fullCycleCompleteTask(tasks.get(0).getId(), "testUser2",
+		 groupsUser2);
+		 Thread.sleep(3000);
+		// //Reload the tasks to see new status.
+		// tasksUser2 = client.getTasksOwned("testUser2", "en-UK");
+		// Assert.assertEquals(1, tasksUser2.size());
+		// Assert.assertEquals(Status.Completed, tasksUser2.get(0).getStatus());
+		//
+		// //now check in the logs the process finished.
+		 ProcessInstanceLog processInstanceLog =
+		 processLog.findProcessInstance(processInstanceId);
+		 Assert.assertNotNull(processInstanceLog.getEnd());
+	}
+
+	private void fullCycleCompleteTask(long taskId, String userId,
+			List<String> groups) {
+		client.claim(taskId, userId, groups);
+		client.start(taskId, userId);
+		client.complete(taskId, userId, null);
+
+	}
+
 }

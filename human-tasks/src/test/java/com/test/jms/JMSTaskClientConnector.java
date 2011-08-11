@@ -15,6 +15,7 @@ import javax.jms.Queue;
 import javax.jms.Session;
 import javax.naming.Context;
 import javax.naming.InitialContext;
+import javax.transaction.TransactionManager;
 
 import org.jbpm.task.service.BaseHandler;
 import org.jbpm.task.service.TaskClientConnector;
@@ -27,8 +28,9 @@ import org.slf4j.LoggerFactory;
 import bitronix.tm.TransactionManagerServices;
 
 public class JMSTaskClientConnector implements TaskClientConnector {
-	
-	private static final Logger logger = LoggerFactory.getLogger(JMSTaskClientConnector.class);
+
+	private static final Logger logger = LoggerFactory
+			.getLogger(JMSTaskClientConnector.class);
 	protected Connection connection;
 	protected Session session;
 	protected Queue queue;
@@ -39,11 +41,13 @@ public class JMSTaskClientConnector implements TaskClientConnector {
 	private MessageProducer producer;
 	private Properties connectionProperties;
 	private Context context;
-	
-	private String selector;
-	
 
-	public JMSTaskClientConnector(String name, BaseJMSHandler handler, Properties connectionProperties, Context context) {
+	private String selector;
+	private boolean manualTransaction = false;
+	private TransactionManager tm;
+
+	public JMSTaskClientConnector(String name, BaseJMSHandler handler,
+			Properties connectionProperties, Context context) {
 		if (name == null) {
 			throw new IllegalArgumentException("Name can not be null");
 		}
@@ -54,24 +58,47 @@ public class JMSTaskClientConnector implements TaskClientConnector {
 		this.counter = new AtomicInteger();
 	}
 
+	public JMSTaskClientConnector(String name, BaseJMSHandler handler,
+			Properties connectionProperties, Context context,
+			TransactionManager tm) {
+		if (name == null) {
+			throw new IllegalArgumentException("Name can not be null");
+		}
+		this.name = name;
+		this.handler = handler;
+		this.connectionProperties = connectionProperties;
+		this.context = context;
+		this.counter = new AtomicInteger();
+		if (tm != null) {
+			this.manualTransaction = true;
+			this.tm = tm;
+		}
+	}
+
 	public boolean connect(String address, int port) {
 		return connect();
 	}
 
 	public boolean connect() {
-		if (this.session != null) { 
-			//throw new IllegalStateException("Already connected. Disconnect first.");
+		if (this.session != null) {
+			// throw new
+			// IllegalStateException("Already connected. Disconnect first.");
 			return true;
 		}
 		try {
-			
-			String connFactoryName = connectionProperties.getProperty(TaskServiceConstants.TASK_CLIENT_CONNECTION_FACTORY_NAME);
-			String transactedQueueString = connectionProperties.getProperty(TaskServiceConstants.TASK_CLIENT_TRANSACTED_QUEUE_NAME);
-			String acknowledgeModeString = connectionProperties.getProperty(TaskServiceConstants.TASK_CLIENT_ACKNOWLEDGE_MODE_NAME);
-			String queueName = connectionProperties.getProperty(TaskServiceConstants.TASK_CLIENT_QUEUE_NAME_NAME);
-			String responseQueueName = connectionProperties.getProperty(TaskServiceConstants.TASK_CLIENT_RESPONSE_QUEUE_NAME_NAME);
+
+			String connFactoryName = connectionProperties
+					.getProperty(TaskServiceConstants.TASK_CLIENT_CONNECTION_FACTORY_NAME);
+			String transactedQueueString = connectionProperties
+					.getProperty(TaskServiceConstants.TASK_CLIENT_TRANSACTED_QUEUE_NAME);
+			String acknowledgeModeString = connectionProperties
+					.getProperty(TaskServiceConstants.TASK_CLIENT_ACKNOWLEDGE_MODE_NAME);
+			String queueName = connectionProperties
+					.getProperty(TaskServiceConstants.TASK_CLIENT_QUEUE_NAME_NAME);
+			String responseQueueName = connectionProperties
+					.getProperty(TaskServiceConstants.TASK_CLIENT_RESPONSE_QUEUE_NAME_NAME);
 			boolean transactedQueue = Boolean.valueOf(transactedQueueString);
-			int acknowledgeMode = Session.DUPS_OK_ACKNOWLEDGE; //default
+			int acknowledgeMode = Session.DUPS_OK_ACKNOWLEDGE; // default
 			if ("AUTO_ACKNOWLEDGE".equals(acknowledgeModeString)) {
 				acknowledgeMode = Session.AUTO_ACKNOWLEDGE;
 			} else if ("CLIENT_ACKNOWLEDGE".equals(acknowledgeModeString)) {
@@ -81,14 +108,18 @@ public class JMSTaskClientConnector implements TaskClientConnector {
 			if (ctx == null) {
 				ctx = new InitialContext();
 			}
-			
+			ConnectionFactory factory = (ConnectionFactory) this.context
+					.lookup(connFactoryName);
+
+			this.connection = factory.createConnection();
+			this.connection.start();
 			return true;
 		} catch (Exception e) {
 			logger.error(e.getMessage());
 		}
 		return false;
 	}
-	
+
 	private Object readMessage(ObjectMessage serverMessage) throws JMSException {
 		return serverMessage.getObject();
 	}
@@ -97,7 +128,7 @@ public class JMSTaskClientConnector implements TaskClientConnector {
 		if (this.producer != null) {
 			try {
 				this.producer.close();
-			} catch (Exception e) { 
+			} catch (Exception e) {
 			} finally {
 				this.producer = null;
 			}
@@ -122,24 +153,33 @@ public class JMSTaskClientConnector implements TaskClientConnector {
 
 	public void write(Object object) {
 		try {
-			String connFactoryName = connectionProperties.getProperty(TaskServiceConstants.TASK_CLIENT_CONNECTION_FACTORY_NAME);
-			String transactedQueueString = connectionProperties.getProperty(TaskServiceConstants.TASK_CLIENT_TRANSACTED_QUEUE_NAME);
-			String acknowledgeModeString = connectionProperties.getProperty(TaskServiceConstants.TASK_CLIENT_ACKNOWLEDGE_MODE_NAME);
-			String queueName = connectionProperties.getProperty(TaskServiceConstants.TASK_CLIENT_QUEUE_NAME_NAME);
-			String responseQueueName = connectionProperties.getProperty(TaskServiceConstants.TASK_CLIENT_RESPONSE_QUEUE_NAME_NAME);
+			String connFactoryName = connectionProperties
+					.getProperty(TaskServiceConstants.TASK_CLIENT_CONNECTION_FACTORY_NAME);
+			String transactedQueueString = connectionProperties
+					.getProperty(TaskServiceConstants.TASK_CLIENT_TRANSACTED_QUEUE_NAME);
+			String acknowledgeModeString = connectionProperties
+					.getProperty(TaskServiceConstants.TASK_CLIENT_ACKNOWLEDGE_MODE_NAME);
+			String queueName = connectionProperties
+					.getProperty(TaskServiceConstants.TASK_CLIENT_QUEUE_NAME_NAME);
+			String responseQueueName = connectionProperties
+					.getProperty(TaskServiceConstants.TASK_CLIENT_RESPONSE_QUEUE_NAME_NAME);
 			boolean transactedQueue = Boolean.valueOf(transactedQueueString);
-			int acknowledgeMode = Session.DUPS_OK_ACKNOWLEDGE; //default
+			int acknowledgeMode = Session.DUPS_OK_ACKNOWLEDGE; // default
 			if ("AUTO_ACKNOWLEDGE".equals(acknowledgeModeString)) {
 				acknowledgeMode = Session.AUTO_ACKNOWLEDGE;
 			} else if ("CLIENT_ACKNOWLEDGE".equals(acknowledgeModeString)) {
 				acknowledgeMode = Session.CLIENT_ACKNOWLEDGE;
 			}
-			TransactionManagerServices.getTransactionManager().begin();
-			ConnectionFactory factory = (ConnectionFactory) this.context.lookup(connFactoryName);
-
-			this.connection = factory.createConnection();
-			this.connection.start();
-			this.session = this.connection.createSession(transactedQueue, acknowledgeMode);
+			if (this.manualTransaction) {
+				this.tm.begin();
+			}
+			// ConnectionFactory factory = (ConnectionFactory) this.context
+			// .lookup(connFactoryName);
+			//
+			// this.connection = factory.createConnection();
+			// this.connection.start();
+			this.session = this.connection.createSession(transactedQueue,
+					acknowledgeMode);
 			this.queue = this.session.createQueue(queueName);
 			this.responseQueue = this.session.createQueue(responseQueueName);
 			this.producer = this.session.createProducer(this.queue);
@@ -147,16 +187,17 @@ public class JMSTaskClientConnector implements TaskClientConnector {
 			this.selector = UUID.randomUUID().toString();
 			Thread responseThread = new Thread(new Responder(selector));
 			responseThread.start();
-			message.setStringProperty(TaskServiceConstants.SELECTOR_NAME, this.selector);
-			message.setObject((Serializable)object);
-			System.out.println("Session:" + this.session);
+			message.setStringProperty(TaskServiceConstants.SELECTOR_NAME,
+					this.selector);
+			message.setObject((Serializable) object);
 			this.producer.send(message);
-			logger.debug("+++SE TERMINO EL ADD WRITE LOCO+++");
-			System.out.println(object);
-			TransactionManagerServices.getTransactionManager().commit();
+			if (this.manualTransaction) {
+				this.tm.commit();
+			}
 		} catch (JMSException e) {
 			if (!"102".equals(e.getErrorCode())) {
-				throw new RuntimeException("No se pudo recibir respuesta JMS", e);
+				throw new RuntimeException("No se pudo recibir respuesta JMS",
+						e);
 			}
 			logger.info(e.getMessage());
 			return;
@@ -176,40 +217,55 @@ public class JMSTaskClientConnector implements TaskClientConnector {
 	public String getName() {
 		return this.name;
 	}
-	
+
 	protected class Responder implements Runnable {
-		
+
 		private final String selector;
-		
+
 		protected Responder(String selector) {
 			this.selector = selector;
 		}
-		
+
 		public void run() {
 			MessageConsumer consumer = null;
 			try {
+//				if (manualTransaction) {
+//					tm.begin();
+//				}
 				TransactionManagerServices.getTransactionManager().begin();
-				Session session = connection.createSession(true, Session.AUTO_ACKNOWLEDGE);
-				consumer = session.createConsumer(responseQueue, " " + TaskServiceConstants.SELECTOR_NAME + " like '" + selector + "%' ");
-				ObjectMessage serverMessage = (ObjectMessage) consumer.receive();
+				Session session = connection.createSession(true,
+						Session.AUTO_ACKNOWLEDGE);
+				consumer = session.createConsumer(responseQueue, " "
+						+ TaskServiceConstants.SELECTOR_NAME + " like '"
+						+ selector + "%' ");
+				ObjectMessage serverMessage = (ObjectMessage) consumer
+						.receive();
 				if (serverMessage != null) {
-					((JMSTaskClientHandler) handler).messageReceived(session, readMessage(serverMessage), responseQueue, selector);
+					((JMSTaskClientHandler) handler)
+							.messageReceived(session,
+									readMessage(serverMessage), responseQueue,
+									selector);
 				}
+//				if (manualTransaction) {
 				TransactionManagerServices.getTransactionManager().commit();
+//				}
 			} catch (JMSException e) {
 				if (!"102".equals(e.getErrorCode())) {
-					throw new RuntimeException("No se pudo recibir respuesta JMS", e);
+					throw new RuntimeException(
+							"No se pudo recibir respuesta JMS", e);
 				}
 				logger.info(e.getMessage());
 				return;
 			} catch (Exception e) {
-				throw new RuntimeException("Error inesperado recibiendo respuesta JMS", e);
+				throw new RuntimeException(
+						"Error inesperado recibiendo respuesta JMS", e);
 			} finally {
 				if (consumer != null) {
 					try {
 						consumer.close();
 					} catch (Exception e) {
-						logger.info("No se pudo cerrar el consumer: " + e.getMessage());
+						logger.info("No se pudo cerrar el consumer: "
+								+ e.getMessage());
 					}
 				}
 			}
