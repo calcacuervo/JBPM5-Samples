@@ -137,9 +137,10 @@ public class BaseHumanTaskTest {
 				.lookup("hornet");
 		System.setProperty("java.naming.factory.initial",
 				"org.jnp.interfaces.NamingContextFactory");
-		this.connectionFactory = (PoolingConnectionFactory)factory;
+		this.connectionFactory = (PoolingConnectionFactory) factory;
 
-		TransactionManager btm = TransactionManagerServices.getTransactionManager();
+		TransactionManager btm = TransactionManagerServices
+				.getTransactionManager();
 		Properties serverProperties = new Properties();
 		serverProperties.setProperty("JMSTaskServer.connectionFactory",
 				"hornet");
@@ -161,8 +162,7 @@ public class BaseHumanTaskTest {
 		this.server = new JMSTaskServer(taskService, serverProperties, ctx);
 		Thread thread = new Thread(server);
 		thread.start();
-		
-		
+
 		MockUserInfo userInfo = new MockUserInfo();
 
 		taskService.setUserinfo(userInfo);
@@ -182,7 +182,7 @@ public class BaseHumanTaskTest {
 		this.client = new TaskClient(new JMSTaskClientConnector(
 				"testConnector", new JMSTaskClientHandler(
 						SystemEventListenerFactory.getSystemEventListener()),
-				clientProperties, ctx, btm));
+				clientProperties, ctx, btm, true));
 		try {
 			this.client.connect("127.0.0.1", 5445);
 		} catch (IllegalStateException e) {
@@ -208,7 +208,6 @@ public class BaseHumanTaskTest {
 		long taskId = addTaskHandler.getTaskId();
 		Assert.assertEquals(1L, taskId);
 
-
 	}
 
 	private void startJornet() {
@@ -233,7 +232,7 @@ public class BaseHumanTaskTest {
 			naming.start();
 			System.setProperty("java.naming.factory.initial",
 					"bitronix.tm.jndi.BitronixInitialContextFactory");
-			
+
 			jndiServer = new Main();
 			jndiServer.setNamingInfo(naming);
 			jndiServer.setPort(1099);
@@ -273,8 +272,7 @@ public class BaseHumanTaskTest {
 
 			// Step 8. Start the JMS Server using the HornetQ core server and
 			// the JMS configuration
-			jmsServer = new JMSServerManagerImpl(
-					hornetqServer, jmsConfig);
+			jmsServer = new JMSServerManagerImpl(hornetqServer, jmsConfig);
 			jmsServer.start();
 			System.out.println("Started Embedded JMS Server");
 
@@ -285,9 +283,9 @@ public class BaseHumanTaskTest {
 	}
 
 	JMSServerManager jmsServer;
-	
+
 	Main jndiServer;
-	
+
 	@After
 	public void tearDown() throws Exception {
 
@@ -295,26 +293,25 @@ public class BaseHumanTaskTest {
 			this.fileLogger.close();
 		}
 
-//		emf.close();
+		// emf.close();
 		// if (emfTask != null) {
 		// emfTask.close();
 		// }
 		connectionFactory.close();
 		context.close();
-//		ds1.close();
-		
+		// ds1.close();
+
 		server.stop();
 		this.client.disconnect();
 		this.jndiServer.stop();
 		System.setProperty("java.naming.factory.initial",
-		"org.jnp.interfaces.NamingContextFactory");
+				"org.jnp.interfaces.NamingContextFactory");
 		this.jmsServer.setContext(new InitialContext());
 		this.jmsServer.stop();
 	}
 
 	protected String[] getTestUsers() {
-		return new String[] { "usr0", "testUser2", "testUser3",
-				"Administrator" };
+		return new String[] { "usr0", "testUser2", "testUser3", "Administrator" };
 	}
 
 	protected String[] getTestGroups() {
@@ -322,9 +319,12 @@ public class BaseHumanTaskTest {
 	}
 
 	protected String[] getProcessPaths() {
-		return new String[] { /**"two-tasks-human-task-test.bpmn", "two-tasks-human-task-assigned-to-actortest.bpmn"**/ };
+		return new String[] {/**
+		 * "two-tasks-human-task-test.bpmn",
+		 * "two-tasks-human-task-assigned-to-actortest.bpmn"
+		 **/
+		};
 	}
-
 
 	private void fillUsersAndGroups(TaskServiceSession session) {
 		for (String group : this.getTestGroups()) {

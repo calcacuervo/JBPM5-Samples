@@ -3,6 +3,7 @@ package com.test.jms;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.jms.Connection;
 import javax.jms.Destination;
 import javax.jms.MessageProducer;
 import javax.jms.Queue;
@@ -23,7 +24,7 @@ public class JMSTaskServerHandler {
 		this.producers = new HashMap<String, MessageProducer>();
 	}
 
-	public void messageReceived(Session session, Object message, Destination destination, String selector) throws Exception {
+	public void messageReceived(Connection connection, Session session, Object message, Destination destination, String selector) throws Exception {
 		String name = "";
 		if (destination instanceof Queue) {
 			name = ((Queue) destination).getQueueName();
@@ -36,6 +37,6 @@ public class JMSTaskServerHandler {
 			this.producers.put(name, producer);
 		}
 		System.out.println("{{{{{MessageReceived in server!");
-		this.handler.messageReceived(new JMSSessionWriter(session, producer, selector), message);
+		this.handler.messageReceived(new JMSSessionWriter(connection, selector), message);
 	}
 }

@@ -213,7 +213,7 @@ public class IntegrationHumanTaskTest {
 		TaskClient taskClient = new TaskClient(new JMSTaskClientConnector(
 				"testConnector", new JMSTaskClientHandler(
 						SystemEventListenerFactory.getSystemEventListener()),
-				clientProperties, ctx));
+				clientProperties, ctx, btm, false));
 		this.client = new TaskClientWrapper(taskClient, btm);
 		try {
 			this.client.connect("127.0.0.1", 5445);
@@ -396,11 +396,6 @@ public class IntegrationHumanTaskTest {
 		 this.fullCycleCompleteTask(tasks.get(0).getId(), "testUser2",
 		 groupsUser2);
 		 Thread.sleep(3000);
-		// //Reload the tasks to see new status.
-		// tasksUser2 = client.getTasksOwned("testUser2", "en-UK");
-		// Assert.assertEquals(1, tasksUser2.size());
-		// Assert.assertEquals(Status.Completed, tasksUser2.get(0).getStatus());
-		//
 		// //now check in the logs the process finished.
 		 ProcessInstanceLog processInstanceLog =
 		 processLog.findProcessInstance(processInstanceId);

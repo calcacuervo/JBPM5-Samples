@@ -33,8 +33,6 @@ public abstract class BaseJMSTaskServer extends TaskServer {
 	private JMSTaskServerHandler handler;
 	private Properties connectionProperties;
 	private Context context;
-	private Queue queue;
-	private Queue responseQueue;
 	private Connection connection;
 	private Session session;
 	private MessageConsumer consumer;
@@ -61,42 +59,6 @@ public abstract class BaseJMSTaskServer extends TaskServer {
 	}
 
 	public void start() throws Exception {
-//		Context ctx = this.context;
-//		if (this.context == null) {
-//			ctx = new InitialContext();
-//		}
-//		String connFactoryName = this.connectionProperties
-//				.getProperty(TaskServiceConstants.TASK_SERVER_CONNECTION_FACTORY_NAME);
-//		boolean transacted = Boolean.valueOf(this.connectionProperties
-//				.getProperty(TaskServiceConstants.TASK_SERVER_TRANSACTED_NAME));
-//		String ackModeString = this.connectionProperties
-//				.getProperty(TaskServiceConstants.TASK_SERVER_ACKNOWLEDGE_MODE_NAME);
-//		String queueName = this.connectionProperties
-//				.getProperty(TaskServiceConstants.TASK_SERVER_QUEUE_NAME_NAME);
-//		String responseQueueName = this.connectionProperties
-//				.getProperty(TaskServiceConstants.TASK_SERVER_RESPONSE_QUEUE_NAME_NAME);
-//		int ackMode = Session.DUPS_OK_ACKNOWLEDGE; // default
-//		if ("AUTO_ACKNOWLEDGE".equals(ackModeString)) {
-//			ackMode = Session.AUTO_ACKNOWLEDGE;
-//		} else if ("CLIENT_ACKNOWLEDGE".equals(ackModeString)) {
-//			ackMode = Session.CLIENT_ACKNOWLEDGE;
-//		}
-//
-//		ConnectionFactory factory = (ConnectionFactory) ctx
-//				.lookup(connFactoryName);
-//		try {
-//			connection = factory.createConnection();
-//			connection.start();
-//			session = connection.createSession(transacted, ackMode);
-//			this.queue = session.createQueue(queueName);
-//			// this.responseQueue = this.session.createQueue(responseQueueName);
-//			this.consumer = this.session.createConsumer(this.queue);
-//		} catch (JMSException e) {
-//			throw new RuntimeException(
-//					"No se pudo levantar la cola servidora del JMSTaskServer",
-//					e);
-//		}
-//		this.running = true;
 	}
 
 	public void stop() throws Exception {
@@ -133,15 +95,15 @@ public abstract class BaseJMSTaskServer extends TaskServer {
 			ConnectionFactory factory = (ConnectionFactory) ctx
 					.lookup(connFactoryName);
 			this.running = true;
+			this.connection = factory.createConnection();
+			connection.start();
 			while (this.isRunning()) {
 				if (TransactionManagerServices.getTransactionManager()
 						.getCurrentTransaction() == null) {
 					TransactionManagerServices.getTransactionManager().begin();
 				}
-				this.connection = factory.createConnection();
-				connection.start();
-				this.session = connection.createSession(true,
-						Session.AUTO_ACKNOWLEDGE);
+				this.session = connection.createSession(transacted,
+						ackMode);
 				Destination destination = session.createQueue(queueName);
 				Destination responseQueue = session
 						.createQueue(responseQueueName);
@@ -154,7 +116,7 @@ public abstract class BaseJMSTaskServer extends TaskServer {
 						System.out.println("received message ");
 						Object object = readMessage(clientMessage);
 						String selector = readSelector(clientMessage);
-						this.handler.messageReceived(session, object,
+						this.handler.messageReceived(connection, session, object,
 								responseQueue, selector);
 						TransactionManagerServices.getTransactionManager()
 						.commit();
@@ -173,7 +135,6 @@ public abstract class BaseJMSTaskServer extends TaskServer {
 	
 	private void closeAll() throws JMSException {
 		this.consumer.close();
-//		this.session.close();
 		this.connection.close();
 	}
 

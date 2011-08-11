@@ -43,24 +43,12 @@ public class JMSTaskClientConnector implements TaskClientConnector {
 	private Context context;
 
 	private String selector;
-	private boolean manualTransaction = false;
-	private TransactionManager tm;
-
-	public JMSTaskClientConnector(String name, BaseJMSHandler handler,
-			Properties connectionProperties, Context context) {
-		if (name == null) {
-			throw new IllegalArgumentException("Name can not be null");
-		}
-		this.name = name;
-		this.handler = handler;
-		this.connectionProperties = connectionProperties;
-		this.context = context;
-		this.counter = new AtomicInteger();
-	}
+	private final boolean manualTransactionOnProducer;
+	private final TransactionManager tm;
 
 	public JMSTaskClientConnector(String name, BaseJMSHandler handler,
 			Properties connectionProperties, Context context,
-			TransactionManager tm) {
+			TransactionManager tm, boolean manualTransactionOnProducer) {
 		if (name == null) {
 			throw new IllegalArgumentException("Name can not be null");
 		}
@@ -69,10 +57,9 @@ public class JMSTaskClientConnector implements TaskClientConnector {
 		this.connectionProperties = connectionProperties;
 		this.context = context;
 		this.counter = new AtomicInteger();
-		if (tm != null) {
-			this.manualTransaction = true;
-			this.tm = tm;
-		}
+		
+		this.manualTransactionOnProducer = manualTransactionOnProducer;
+		this.tm = tm;
 	}
 
 	public boolean connect(String address, int port) {
@@ -81,8 +68,6 @@ public class JMSTaskClientConnector implements TaskClientConnector {
 
 	public boolean connect() {
 		if (this.session != null) {
-			// throw new
-			// IllegalStateException("Already connected. Disconnect first.");
 			return true;
 		}
 		try {
@@ -170,7 +155,7 @@ public class JMSTaskClientConnector implements TaskClientConnector {
 			} else if ("CLIENT_ACKNOWLEDGE".equals(acknowledgeModeString)) {
 				acknowledgeMode = Session.CLIENT_ACKNOWLEDGE;
 			}
-			if (this.manualTransaction) {
+			if (this.manualTransactionOnProducer) {
 				this.tm.begin();
 			}
 			// ConnectionFactory factory = (ConnectionFactory) this.context
@@ -191,7 +176,7 @@ public class JMSTaskClientConnector implements TaskClientConnector {
 					this.selector);
 			message.setObject((Serializable) object);
 			this.producer.send(message);
-			if (this.manualTransaction) {
+			if (this.manualTransactionOnProducer) {
 				this.tm.commit();
 			}
 		} catch (JMSException e) {
@@ -229,10 +214,12 @@ public class JMSTaskClientConnector implements TaskClientConnector {
 		public void run() {
 			MessageConsumer consumer = null;
 			try {
-//				if (manualTransaction) {
-//					tm.begin();
-//				}
-				TransactionManagerServices.getTransactionManager().begin();
+				// We need to have a transaction here always, as we are sure it
+				// is a new thread and it won't have any other transaction
+				// attached.
+				if (tm != null) {
+				tm.begin();
+				}
 				Session session = connection.createSession(true,
 						Session.AUTO_ACKNOWLEDGE);
 				consumer = session.createConsumer(responseQueue, " "
@@ -246,9 +233,7 @@ public class JMSTaskClientConnector implements TaskClientConnector {
 									readMessage(serverMessage), responseQueue,
 									selector);
 				}
-//				if (manualTransaction) {
-				TransactionManagerServices.getTransactionManager().commit();
-//				}
+				tm.commit();
 			} catch (JMSException e) {
 				if (!"102".equals(e.getErrorCode())) {
 					throw new RuntimeException(
