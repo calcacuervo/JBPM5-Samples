@@ -37,7 +37,7 @@ public class HumanTaskTest extends BaseHumanTaskTest {
 
 	@Override
 	protected String[] getProcessPaths() {
-		return new String[] {"two-tasks-human-task-test.bpmn"};
+		return new String[] {"two-tasks-human-task-test.bpmn", "dynamic-user-human-task-test.bpmn"};
 	}
 
 	@Override
@@ -108,6 +108,41 @@ public class HumanTaskTest extends BaseHumanTaskTest {
 		//now check in the logs the process finished.
 		ProcessInstanceLog processInstanceLog = processLog.findProcessInstance(processInstanceId);
 		Assert.assertNotNull(processInstanceLog.getEnd());
+	}
+	
+	@Test
+	public void dynamicUser() throws InterruptedException {
+		KnowledgeBase kbase = this.createKnowledgeBase();
+		session = JPAKnowledgeService.newStatefulKnowledgeSession(kbase, null,
+				env);
+		
+		//this will log in audit tables
+		new JPAWorkingMemoryDbLogger(session);
+		
+		KnowledgeRuntimeLoggerFactory.newConsoleLogger(session);
+		
+		//Logger that will give information about the process state, variables, etc
+		JPAProcessInstanceDbLog processLog = new JPAProcessInstanceDbLog(session.getEnvironment());
+		
+		CommandBasedWSHumanTaskHandler wsHumanTaskHandler = new CommandBasedWSHumanTaskHandler(
+				session);
+		wsHumanTaskHandler.setClient(client.getTaskClient());
+		session.getWorkItemManager().registerWorkItemHandler("Human Task",
+				wsHumanTaskHandler);
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("group", "testGroup1");
+		ProcessInstance process = session.createProcessInstance("DynamicSimpleTest",
+				params);
+		session.insert(process);
+		long processInstanceId = process.getId();
+		session.startProcessInstance(processInstanceId);
+		Thread.sleep(2000);
+		List<String> groupsUser1 = new ArrayList<String>();
+		groupsUser1.add("testGroup1");
+		List<TaskSummary> tasks = client.getTasksAssignedAsPotentialOwner(
+				"testUser1", "en-UK", groupsUser1);
+
+		Assert.assertEquals(1, tasks.size());
 	}
 
 	private void fullCycleCompleteTask(long taskId, String userId,
