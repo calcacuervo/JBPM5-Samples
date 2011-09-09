@@ -124,7 +124,7 @@ public abstract class BaseHumanTaskTest {
 		TaskClient taskClient = new TaskClient(new HornetQTaskClientConnector("client 1",
 				new HornetQTaskClientHandler(SystemEventListenerFactory
 						.getSystemEventListener())));
-		this.client = new TaskClientWrapper(taskClient, null);
+		this.client = new TaskClientWrapper(taskClient);
 		this.client.connect("127.0.0.1", 5446);
 
 	}

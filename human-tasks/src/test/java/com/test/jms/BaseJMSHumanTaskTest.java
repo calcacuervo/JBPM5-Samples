@@ -169,7 +169,7 @@ public abstract class BaseJMSHumanTaskTest {
 		}
 
 		TaskClient taskClient = this.getTaskClientInstance();
-		this.client = new TaskClientWrapper(taskClient, null);
+		this.client = new TaskClientWrapper(taskClient);
 		this.client.connect("127.0.0.1", 5446);
 
 	}

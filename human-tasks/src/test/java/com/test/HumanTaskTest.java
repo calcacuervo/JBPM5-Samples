@@ -150,7 +150,51 @@ public class HumanTaskTest extends BaseHumanTaskTest {
 		client.claim(taskId, userId, groups);
 		client.start(taskId, userId);
 		client.complete(taskId, userId, null);
+	}
+	
+	@Test
+	public void skipHumanTask() throws InterruptedException {
+		KnowledgeBase kbase = this.createKnowledgeBase();
+		session = JPAKnowledgeService.newStatefulKnowledgeSession(kbase, null,
+				env);
+		
+		//this will log in audit tables
+		new JPAWorkingMemoryDbLogger(session);
+		
+		KnowledgeRuntimeLoggerFactory.newConsoleLogger(session);
+		
+		//Logger that will give information about the process state, variables, etc
+		JPAProcessInstanceDbLog processLog = new JPAProcessInstanceDbLog(session.getEnvironment());
+		
+		CommandBasedWSHumanTaskHandler wsHumanTaskHandler = new CommandBasedWSHumanTaskHandler(
+				session);
+		wsHumanTaskHandler.setClient(client.getTaskClient());
+		session.getWorkItemManager().registerWorkItemHandler("Human Task",
+				wsHumanTaskHandler);
+		ProcessInstance process = session.createProcessInstance("TwoTasksTest",
+				null);
+		session.insert(process);
+		long processInstanceId = process.getId();
+		session.startProcessInstance(processInstanceId);
+		Thread.sleep(2000);
+		List<String> groupsUser1 = new ArrayList<String>();
+		groupsUser1.add("testGroup1");
+		List<String> groupsUser2 = new ArrayList<String>();
+		groupsUser2.add("testGroup2");
+		List<TaskSummary> tasks = client.getTasksAssignedAsPotentialOwner(
+				"testUser1", "en-UK", groupsUser1);
+
+		Assert.assertEquals(1, tasks.size());
+		long taskId = tasks.get(0).getId();
+		client.claim(taskId, "testUser1", groupsUser1);
+		client.start(taskId, "testUser1");
+		client.skip(taskId, "testUser1");
+
+		tasks = client.getTasksOwned("testUser1", "en-UK");
+		Assert.assertEquals(1, tasks.size());
+		Assert.assertEquals(Status.Obsolete, tasks.get(0).getStatus());
 
 	}
+
 
 }
