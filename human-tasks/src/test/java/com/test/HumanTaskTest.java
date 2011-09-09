@@ -194,6 +194,21 @@ public class HumanTaskTest extends BaseHumanTaskTest {
 		Assert.assertEquals(1, tasks.size());
 		Assert.assertEquals(Status.Obsolete, tasks.get(0).getStatus());
 
+		// ended first task, let's take the second..
+		List<TaskSummary> tasksUser2 = client.getTasksAssignedAsPotentialOwner(
+				"testUser2", "en-UK", groupsUser2);
+
+		this.fullCycleCompleteTask(tasksUser2.get(0).getId(), "testUser2",
+				groupsUser2);
+		
+		//Reload the tasks to see new status.
+		tasksUser2 = client.getTasksOwned("testUser2", "en-UK");
+		Assert.assertEquals(1, tasksUser2.size());
+		Assert.assertEquals(Status.Completed, tasksUser2.get(0).getStatus());
+		
+		//now check in the logs the process finished.
+		ProcessInstanceLog processInstanceLog = processLog.findProcessInstance(processInstanceId);
+		Assert.assertNotNull(processInstanceLog.getEnd());
 	}
 
 
