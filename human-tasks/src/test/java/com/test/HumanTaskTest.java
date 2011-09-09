@@ -2,10 +2,8 @@ package com.test;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import junit.framework.Assert;
 
@@ -22,6 +20,12 @@ import org.jbpm.task.Status;
 import org.jbpm.task.query.TaskSummary;
 import org.junit.Test;
 
+/**
+ * Tests to show particular situations.
+ * 
+ * @author calcacuervo
+ * 
+ */
 public class HumanTaskTest extends BaseHumanTaskTest {
 
 	@Override
@@ -37,36 +41,46 @@ public class HumanTaskTest extends BaseHumanTaskTest {
 
 	@Override
 	protected String[] getProcessPaths() {
-		return new String[] {"two-tasks-human-task-test.bpmn", "dynamic-user-human-task-test.bpmn"};
+		return new String[] { "two-tasks-human-task-test.bpmn",
+				"dynamic-user-human-task-test.bpmn" };
 	}
 
 	@Override
-	protected Map<String, Set<String>> getTestUserGroupsAssignments() {
-		Map<String, Set<String>> assign = new HashMap<String, Set<String>>();
-		Set<String> user1Groups = new HashSet<String>();
+	protected Map<String, List<String>> getTestUserGroupsAssignments() {
+		Map<String, List<String>> assign = new HashMap<String, List<String>>();
+		List<String> user1Groups = new ArrayList<String>();
+		List<String> user2Groups = new ArrayList<String>();
 		user1Groups.add("testGroup1");
-		user1Groups.add("testGroup2");
+		user2Groups.add("testGroup2");
 		assign.put("testUser1", user1Groups);
-		assign.put("testUser2", user1Groups);
+		assign.put("testUser2", user2Groups);
 		return assign;
 	}
 
 	private StatefulKnowledgeSession session;
 
+	/**
+	 * Show a case when there are two human tasks, and these two are started and
+	 * completed, and the process is finished.
+	 * 
+	 * @throws InterruptedException
+	 */
 	@Test
 	public void twoHumanTasksCompleted() throws InterruptedException {
 		KnowledgeBase kbase = this.createKnowledgeBase();
 		session = JPAKnowledgeService.newStatefulKnowledgeSession(kbase, null,
 				env);
-		
-		//this will log in audit tables
+
+		// this will log in audit tables
 		new JPAWorkingMemoryDbLogger(session);
-		
+
 		KnowledgeRuntimeLoggerFactory.newConsoleLogger(session);
-		
-		//Logger that will give information about the process state, variables, etc
-		JPAProcessInstanceDbLog processLog = new JPAProcessInstanceDbLog(session.getEnvironment());
-		
+
+		// Logger that will give information about the process state, variables,
+		// etc
+		JPAProcessInstanceDbLog processLog = new JPAProcessInstanceDbLog(
+				session.getEnvironment());
+
 		CommandBasedWSHumanTaskHandler wsHumanTaskHandler = new CommandBasedWSHumanTaskHandler(
 				session);
 		wsHumanTaskHandler.setClient(client.getTaskClient());
@@ -78,71 +92,152 @@ public class HumanTaskTest extends BaseHumanTaskTest {
 		long processInstanceId = process.getId();
 		session.startProcessInstance(processInstanceId);
 		Thread.sleep(2000);
-		List<String> groupsUser1 = new ArrayList<String>();
-		groupsUser1.add("testGroup1");
-		List<String> groupsUser2 = new ArrayList<String>();
-		groupsUser2.add("testGroup2");
+
+		// A new task for testUser1 will be created.
 		List<TaskSummary> tasks = client.getTasksAssignedAsPotentialOwner(
-				"testUser1", "en-UK", groupsUser1);
+				"testUser1", "en-UK",
+				this.getTestUserGroupsAssignments().get("testUser1"));
 
 		Assert.assertEquals(1, tasks.size());
-		this.fullCycleCompleteTask(tasks.get(0).getId(), "testUser1",
-				groupsUser1);
+
+		// complete task.
+		this.fullCycleCompleteTask(tasks.get(0).getId(), "testUser1", this
+				.getTestUserGroupsAssignments().get("testUser1"));
 
 		tasks = client.getTasksOwned("testUser1", "en-UK");
 		Assert.assertEquals(1, tasks.size());
 		Assert.assertEquals(Status.Completed, tasks.get(0).getStatus());
 
-		// ended first task, let's take the second..
+		// ended first task, let's take the second.. this will be testUser2
 		List<TaskSummary> tasksUser2 = client.getTasksAssignedAsPotentialOwner(
-				"testUser2", "en-UK", groupsUser2);
+				"testUser2", "en-UK",
+				this.getTestUserGroupsAssignments().get("testUser2"));
 
-		this.fullCycleCompleteTask(tasksUser2.get(0).getId(), "testUser2",
-				groupsUser2);
-		
-		//Reload the tasks to see new status.
+		this.fullCycleCompleteTask(tasksUser2.get(0).getId(), "testUser2", this
+				.getTestUserGroupsAssignments().get("testUser2"));
+
+		// Reload the tasks to see new status.
 		tasksUser2 = client.getTasksOwned("testUser2", "en-UK");
 		Assert.assertEquals(1, tasksUser2.size());
 		Assert.assertEquals(Status.Completed, tasksUser2.get(0).getStatus());
-		
-		//now check in the logs the process finished.
-		ProcessInstanceLog processInstanceLog = processLog.findProcessInstance(processInstanceId);
+
+		// now check in the logs the process finished.
+		ProcessInstanceLog processInstanceLog = processLog
+				.findProcessInstance(processInstanceId);
 		Assert.assertNotNull(processInstanceLog.getEnd());
 	}
-	
+
+	/**
+	 * Test to show how the a user or group can be dinamically selected in the
+	 * bpmn file. Please refer to this process:
+	 * dynamic-user-human-task-test.bpmn to see how to declare the groupId or
+	 * actorId to be picked up from a process variable.
+	 * 
+	 * @throws InterruptedException
+	 */
 	@Test
 	public void dynamicUser() throws InterruptedException {
 		KnowledgeBase kbase = this.createKnowledgeBase();
 		session = JPAKnowledgeService.newStatefulKnowledgeSession(kbase, null,
 				env);
-		
-		//this will log in audit tables
+
+		// this will log in audit tables
 		new JPAWorkingMemoryDbLogger(session);
-		
+
 		KnowledgeRuntimeLoggerFactory.newConsoleLogger(session);
-		
-		//Logger that will give information about the process state, variables, etc
-		JPAProcessInstanceDbLog processLog = new JPAProcessInstanceDbLog(session.getEnvironment());
-		
+
+		// Logger that will give information about the process state, variables,
+		// etc
+		JPAProcessInstanceDbLog processLog = new JPAProcessInstanceDbLog(
+				session.getEnvironment());
+
 		CommandBasedWSHumanTaskHandler wsHumanTaskHandler = new CommandBasedWSHumanTaskHandler(
 				session);
 		wsHumanTaskHandler.setClient(client.getTaskClient());
 		session.getWorkItemManager().registerWorkItemHandler("Human Task",
 				wsHumanTaskHandler);
 		Map<String, Object> params = new HashMap<String, Object>();
-		params.put("group", "testGroup1");
-		ProcessInstance process = session.createProcessInstance("DynamicSimpleTest",
-				params);
+		
+		// this variable "group" will be used to assign the task.
+		params.put("group", "testGroup2");
+		ProcessInstance process = session.createProcessInstance(
+				"DynamicSimpleTest", params);
 		session.insert(process);
 		long processInstanceId = process.getId();
 		session.startProcessInstance(processInstanceId);
 		Thread.sleep(2000);
-		List<String> groupsUser1 = new ArrayList<String>();
-		groupsUser1.add("testGroup1");
+		
+		//Check a task was created according to the variable group
 		List<TaskSummary> tasks = client.getTasksAssignedAsPotentialOwner(
-				"testUser1", "en-UK", groupsUser1);
+				"testUser2", "en-UK", this.getTestUserGroupsAssignments().get("testUser2"));
 
 		Assert.assertEquals(1, tasks.size());
+	}
+
+	/**
+	 * Test for skipping a human task.
+	 * @throws InterruptedException
+	 */
+	@Test
+	public void skipHumanTask() throws InterruptedException {
+		KnowledgeBase kbase = this.createKnowledgeBase();
+		session = JPAKnowledgeService.newStatefulKnowledgeSession(kbase, null,
+				env);
+
+		// this will log in audit tables
+		new JPAWorkingMemoryDbLogger(session);
+
+		KnowledgeRuntimeLoggerFactory.newConsoleLogger(session);
+
+		// Logger that will give information about the process state, variables,
+		// etc
+		JPAProcessInstanceDbLog processLog = new JPAProcessInstanceDbLog(
+				session.getEnvironment());
+
+		CommandBasedWSHumanTaskHandler wsHumanTaskHandler = new CommandBasedWSHumanTaskHandler(
+				session);
+		wsHumanTaskHandler.setClient(client.getTaskClient());
+		session.getWorkItemManager().registerWorkItemHandler("Human Task",
+				wsHumanTaskHandler);
+		ProcessInstance process = session.createProcessInstance("TwoTasksTest",
+				null);
+		session.insert(process);
+		long processInstanceId = process.getId();
+		session.startProcessInstance(processInstanceId);
+		Thread.sleep(2000);
+
+		List<TaskSummary> tasks = client.getTasksAssignedAsPotentialOwner(
+				"testUser1", "en-UK", this.getTestUserGroupsAssignments().get("testUser1"));
+
+		Assert.assertEquals(1, tasks.size());
+		long taskId = tasks.get(0).getId();
+		
+		client.claim(taskId, "testUser1", this.getTestUserGroupsAssignments().get("testUser1"));
+		client.start(taskId, "testUser1");
+		
+		//Here we skip the In Progress task-
+		client.skip(taskId, "testUser1");
+
+		tasks = client.getTasksOwned("testUser1", "en-UK");
+		Assert.assertEquals(1, tasks.size());
+		Assert.assertEquals(Status.Obsolete, tasks.get(0).getStatus());
+
+		// And then the process continues.
+		List<TaskSummary> tasksUser2 = client.getTasksAssignedAsPotentialOwner(
+				"testUser2", "en-UK", this.getTestUserGroupsAssignments().get("testUser2"));
+
+		this.fullCycleCompleteTask(tasksUser2.get(0).getId(), "testUser2",
+				this.getTestUserGroupsAssignments().get("testUser2"));
+
+		// Reload the tasks to see new status.
+		tasksUser2 = client.getTasksOwned("testUser2", "en-UK");
+		Assert.assertEquals(1, tasksUser2.size());
+		Assert.assertEquals(Status.Completed, tasksUser2.get(0).getStatus());
+
+		// now check in the logs the process finished.
+		ProcessInstanceLog processInstanceLog = processLog
+				.findProcessInstance(processInstanceId);
+		Assert.assertNotNull(processInstanceLog.getEnd());
 	}
 
 	private void fullCycleCompleteTask(long taskId, String userId,
@@ -151,65 +246,4 @@ public class HumanTaskTest extends BaseHumanTaskTest {
 		client.start(taskId, userId);
 		client.complete(taskId, userId, null);
 	}
-	
-	@Test
-	public void skipHumanTask() throws InterruptedException {
-		KnowledgeBase kbase = this.createKnowledgeBase();
-		session = JPAKnowledgeService.newStatefulKnowledgeSession(kbase, null,
-				env);
-		
-		//this will log in audit tables
-		new JPAWorkingMemoryDbLogger(session);
-		
-		KnowledgeRuntimeLoggerFactory.newConsoleLogger(session);
-		
-		//Logger that will give information about the process state, variables, etc
-		JPAProcessInstanceDbLog processLog = new JPAProcessInstanceDbLog(session.getEnvironment());
-		
-		CommandBasedWSHumanTaskHandler wsHumanTaskHandler = new CommandBasedWSHumanTaskHandler(
-				session);
-		wsHumanTaskHandler.setClient(client.getTaskClient());
-		session.getWorkItemManager().registerWorkItemHandler("Human Task",
-				wsHumanTaskHandler);
-		ProcessInstance process = session.createProcessInstance("TwoTasksTest",
-				null);
-		session.insert(process);
-		long processInstanceId = process.getId();
-		session.startProcessInstance(processInstanceId);
-		Thread.sleep(2000);
-		List<String> groupsUser1 = new ArrayList<String>();
-		groupsUser1.add("testGroup1");
-		List<String> groupsUser2 = new ArrayList<String>();
-		groupsUser2.add("testGroup2");
-		List<TaskSummary> tasks = client.getTasksAssignedAsPotentialOwner(
-				"testUser1", "en-UK", groupsUser1);
-
-		Assert.assertEquals(1, tasks.size());
-		long taskId = tasks.get(0).getId();
-		client.claim(taskId, "testUser1", groupsUser1);
-		client.start(taskId, "testUser1");
-		client.skip(taskId, "testUser1");
-
-		tasks = client.getTasksOwned("testUser1", "en-UK");
-		Assert.assertEquals(1, tasks.size());
-		Assert.assertEquals(Status.Obsolete, tasks.get(0).getStatus());
-
-		// ended first task, let's take the second..
-		List<TaskSummary> tasksUser2 = client.getTasksAssignedAsPotentialOwner(
-				"testUser2", "en-UK", groupsUser2);
-
-		this.fullCycleCompleteTask(tasksUser2.get(0).getId(), "testUser2",
-				groupsUser2);
-		
-		//Reload the tasks to see new status.
-		tasksUser2 = client.getTasksOwned("testUser2", "en-UK");
-		Assert.assertEquals(1, tasksUser2.size());
-		Assert.assertEquals(Status.Completed, tasksUser2.get(0).getStatus());
-		
-		//now check in the logs the process finished.
-		ProcessInstanceLog processInstanceLog = processLog.findProcessInstance(processInstanceId);
-		Assert.assertNotNull(processInstanceLog.getEnd());
-	}
-
-
 }

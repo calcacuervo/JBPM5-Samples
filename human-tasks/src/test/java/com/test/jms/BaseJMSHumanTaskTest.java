@@ -48,8 +48,6 @@ import org.jbpm.task.service.TaskClient;
 import org.jbpm.task.service.TaskServer;
 import org.jbpm.task.service.TaskService;
 import org.jbpm.task.service.TaskServiceSession;
-import org.jbpm.task.service.hornetq.HornetQTaskClientConnector;
-import org.jbpm.task.service.hornetq.HornetQTaskClientHandler;
 import org.jbpm.task.service.jms.JMSTaskClientConnector;
 import org.jbpm.task.service.jms.JMSTaskClientHandler;
 import org.jbpm.task.service.jms.JMSTaskServer;
@@ -64,6 +62,13 @@ import bitronix.tm.resource.jdbc.PoolingDataSource;
 import com.test.MockUserInfo;
 import com.test.TaskClientWrapper;
 
+/**
+ * Base test to setup a JMS enviroment, to use {@link JMSTaskServer} and
+ * {@link JMSTaskClientConnector}.
+ * 
+ * @author calcacuervo
+ * 
+ */
 public abstract class BaseJMSHumanTaskTest {
 	public final static String PROCESSES_PKG_KEY = "processes";
 	protected TaskServer taskServer;
@@ -121,7 +126,7 @@ public abstract class BaseJMSHumanTaskTest {
 		ds1.init();
 
 		System.setProperty("java.naming.factory.initial",
-		"bitronix.tm.jndi.BitronixInitialContextFactory");
+				"bitronix.tm.jndi.BitronixInitialContextFactory");
 		emf = Persistence
 				.createEntityManagerFactory("org.jbpm.persistence.jpa");
 
@@ -149,8 +154,8 @@ public abstract class BaseJMSHumanTaskTest {
 		serverProperties.setProperty("JMSTaskServer.queueName", "tasksQueue");
 		serverProperties.setProperty("JMSTaskServer.responseQueueName",
 				"tasksResponseQueue");
-		 System.setProperty("java.naming.factory.initial",
-		 "org.jnp.interfaces.NamingContextFactory");
+		System.setProperty("java.naming.factory.initial",
+				"org.jnp.interfaces.NamingContextFactory");
 		Context ctx = null;
 		try {
 			ctx = new InitialContext();
@@ -240,8 +245,7 @@ public abstract class BaseJMSHumanTaskTest {
 			env.put("java.naming.factory.initial",
 					"org.jnp.interfaces.NamingContextFactory");
 			env.put("java.naming.provider.url", "jnp://localhost:1099");
-			env.put("java.naming.factory.url.pkgs",
-					"org.apache.naming");
+			env.put("java.naming.factory.url.pkgs", "org.apache.naming");
 			context = new InitialContext(env);
 			jmsConfig.setContext(context);
 
@@ -284,33 +288,32 @@ public abstract class BaseJMSHumanTaskTest {
 			session.addGroup(new Group(testGroup));
 		}
 	}
-	
+
 	private TaskClient getTaskClientInstance() {
-			Properties clientProperties = new Properties();
-			
-			//Here we set the JMS connection properties.
-			clientProperties.setProperty("JMSTaskClient.connectionFactory",
-					"XAConnectionFactory");
-			clientProperties.setProperty("JMSTaskClient.transactedQueue",
-					"true");
-			clientProperties.setProperty("JMSTaskClient.acknowledgeMode",
-					"AUTO_ACKNOWLEDGE");
-			clientProperties.setProperty("JMSTaskClient.queueName",
-					"tasksQueue");
-			clientProperties.setProperty("JMSTaskClient.responseQueueName",
-					"tasksResponseQueue");
-			System.setProperty("java.naming.factory.initial",
-					"org.jnp.interfaces.NamingContextFactory");
-			Context ctx = null;
-			try {
-				ctx = new InitialContext();
-			} catch (NamingException e) {
-				e.printStackTrace();
-			}
-			TaskClient client = new TaskClient(new JMSTaskClientConnector("testConnector",
-					new JMSTaskClientHandler(SystemEventListenerFactory
-							.getSystemEventListener()), clientProperties, ctx));
-			return client;
-		
+		Properties clientProperties = new Properties();
+
+		// Here we set the JMS connection properties.
+		clientProperties.setProperty("JMSTaskClient.connectionFactory",
+				"XAConnectionFactory");
+		clientProperties.setProperty("JMSTaskClient.transactedQueue", "true");
+		clientProperties.setProperty("JMSTaskClient.acknowledgeMode",
+				"AUTO_ACKNOWLEDGE");
+		clientProperties.setProperty("JMSTaskClient.queueName", "tasksQueue");
+		clientProperties.setProperty("JMSTaskClient.responseQueueName",
+				"tasksResponseQueue");
+		System.setProperty("java.naming.factory.initial",
+				"org.jnp.interfaces.NamingContextFactory");
+		Context ctx = null;
+		try {
+			ctx = new InitialContext();
+		} catch (NamingException e) {
+			e.printStackTrace();
+		}
+		TaskClient client = new TaskClient(new JMSTaskClientConnector(
+				"testConnector", new JMSTaskClientHandler(
+						SystemEventListenerFactory.getSystemEventListener()),
+				clientProperties, ctx));
+		return client;
+
 	}
 }

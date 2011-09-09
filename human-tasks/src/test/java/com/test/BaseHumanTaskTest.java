@@ -1,7 +1,7 @@
 package com.test;
 
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
@@ -154,7 +154,7 @@ public abstract class BaseHumanTaskTest {
 
 	protected abstract String[] getTestGroups();
 
-	protected abstract Map<String, Set<String>> getTestUserGroupsAssignments();
+	protected abstract Map<String, List<String>> getTestUserGroupsAssignments();
 	
 	private void fillUsersAndGroups(TaskServiceSession session) {
 		for (int i = 0; i < this.getTestUsers().length; i++) {

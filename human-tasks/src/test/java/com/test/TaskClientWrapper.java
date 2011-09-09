@@ -60,6 +60,12 @@ public class TaskClientWrapper {
 		client.claim(taskId, userId, groups, claimOperationResponseHandler);
 		claimOperationResponseHandler.waitTillDone(1000);
 	}
+	
+	public void delegate(long taskId, final String userId, String targetUserId) {
+		BlockingTaskOperationResponseHandler responseHandler = new BlockingTaskOperationResponseHandler();
+		client.delegate(taskId, userId, targetUserId, responseHandler);
+		responseHandler.waitTillDone(1000);
+	}
 
 	/**
 	 * User starts a task.

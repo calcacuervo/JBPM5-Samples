@@ -17,7 +17,6 @@ import org.drools.runtime.process.ProcessInstance;
 import org.jbpm.process.audit.JPAProcessInstanceDbLog;
 import org.jbpm.process.audit.JPAWorkingMemoryDbLogger;
 import org.jbpm.process.audit.NodeInstanceLog;
-import org.jbpm.process.audit.ProcessInstanceLog;
 import org.jbpm.process.workitem.wsht.CommandBasedWSHumanTaskHandler;
 import org.jbpm.task.Status;
 import org.jbpm.task.query.TaskSummary;
