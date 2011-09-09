@@ -66,6 +66,24 @@ public class TaskClientWrapper {
 		client.delegate(taskId, userId, targetUserId, responseHandler);
 		responseHandler.waitTillDone(1000);
 	}
+	
+	public void remove(long taskId, final String userId) {
+		BlockingTaskOperationResponseHandler responseHandler = new BlockingTaskOperationResponseHandler();
+		client.remove(taskId, userId, responseHandler);
+		responseHandler.waitTillDone(1000);
+	}
+	
+	public void release(long taskId, final String userId) {
+		BlockingTaskOperationResponseHandler responseHandler = new BlockingTaskOperationResponseHandler();
+		client.release(taskId, userId, responseHandler);
+		responseHandler.waitTillDone(1000);
+	}
+	
+	public void resume(long taskId, final String userId) {
+		BlockingTaskOperationResponseHandler responseHandler = new BlockingTaskOperationResponseHandler();
+		client.resume(taskId, userId, responseHandler);
+		responseHandler.waitTillDone(1000);
+	}
 
 	/**
 	 * User starts a task.

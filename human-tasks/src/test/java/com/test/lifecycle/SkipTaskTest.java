@@ -23,28 +23,20 @@ import org.junit.Test;
 import com.test.BaseHumanTaskTest;
 
 /**
- * This test will show how to delegate tasks to another user.................
- * Task’s potential owners, actual owner or business administrator can delegate
- * a task to another user, making that user the actual owner of the task, and
- * also adding her to the list of potential owners in case she is not, yet. A
- * task can be delegated when it is in an active state (Ready, Reserved,
- * InProgress), and transitions the task into the Reserved state. Business data
- * associated with the task is kept. Similarily, task’s potential owners, actual
- * owner or business administrator can forward an active task to another person
- * or a set of people, replacing himself by those people in the list of
- * potential owners. Potential owners can only forward tasks that are in the
- * Ready state. Forwarding is possible if the task has a set of individually
- * assigned potential owners, not if its potential owners are assigned using one
- * or many groups. If the task is in the Reserved or InProgress state then the
- * task is implicitly released first, that is, the task is transitioned into the
- * Ready state. Business data associated with the task is kept. The user
- * performing the forward is removed from the set of potential owners of the
- * task, and the forwardee is added to the set of potential owners.
+ * This test will show how to use skip operation of tasks......................
+ * A person working on a human task or a business administrator may decide that
+ * a task is no longer needed, and hence skip this task. This transitions the
+ * task into the Obsolete state. This is considered a “good” outcome of a task,
+ * even though an empty result is returned. The enclosing environment can be
+ * notified of that transition as described in section 7. The task can only be
+ * skipped if this capability is specified during the task invocation. A
+ * side-effect of this is that a task which is invoked using basic Web service
+ * protocols is not skipable.
  * 
  * @author calcacuervo
  * 
  */
-public class DelegateTaskTest extends BaseHumanTaskTest {
+public class SkipTaskTest extends BaseHumanTaskTest {
 
 	@Override
 	protected String[] getTestUsers() {
@@ -78,14 +70,12 @@ public class DelegateTaskTest extends BaseHumanTaskTest {
 	private StatefulKnowledgeSession session;
 
 	/**
-	 * This test shows how to the owner of a task, who already claims it, can
-	 * delegate it.
+	 * Remove a task which is already In Progress.
 	 * 
 	 * @throws InterruptedException
 	 */
 	@Test
-	public void actualOwnerDelegatesHisClaimedTask()
-			throws InterruptedException {
+	public void skipInProgressHumanTask() throws InterruptedException {
 		KnowledgeBase kbase = this.createKnowledgeBase();
 		session = JPAKnowledgeService.newStatefulKnowledgeSession(kbase, null,
 				env);
@@ -111,28 +101,105 @@ public class DelegateTaskTest extends BaseHumanTaskTest {
 		long processInstanceId = process.getId();
 		session.startProcessInstance(processInstanceId);
 		Thread.sleep(2000);
+
 		List<TaskSummary> tasks = client.getTasksAssignedAsPotentialOwner(
 				"testUser1", "en-UK",
 				this.getTestUserGroupsAssignments().get("testUser1"));
 
 		Assert.assertEquals(1, tasks.size());
-
 		long taskId = tasks.get(0).getId();
-		// testUser1 claims his task. After that, he is the actual owner
+
+		client.claim(taskId, "testUser1", this.getTestUserGroupsAssignments()
+				.get("testUser1"));
+		client.start(taskId, "testUser1");
+
+		// Here we skip the In Progress task-
+		client.skip(taskId, "testUser1");
+
+		tasks = client.getTasksOwned("testUser1", "en-UK");
+		Assert.assertEquals(1, tasks.size());
+		Assert.assertEquals(Status.Obsolete, tasks.get(0).getStatus());
+
+		// And then the process continues.
+		List<TaskSummary> tasksUser2 = client.getTasksAssignedAsPotentialOwner(
+				"testUser2", "en-UK",
+				this.getTestUserGroupsAssignments().get("testUser2"));
+
+		Assert.assertEquals(1, tasksUser2.size());
+		taskId = tasksUser2.get(0).getId();
+		client.claim(taskId, "testUser2", this.getTestUserGroupsAssignments()
+				.get("testUser2"));
+		client.start(taskId, "testUser2");
+		client.complete(taskId, "testUser2", null);
+
+		// Reload the tasks to see new status.
+		tasksUser2 = client.getTasksOwned("testUser2", "en-UK");
+		Assert.assertEquals(1, tasksUser2.size());
+		Assert.assertEquals(Status.Completed, tasksUser2.get(0).getStatus());
+
+		// now check in the logs the process finished.
+		ProcessInstanceLog processInstanceLog = processLog
+				.findProcessInstance(processInstanceId);
+		Assert.assertNotNull(processInstanceLog.getEnd());
+	}
+	
+	/**
+	 * Remove a task which is already claimed.
+	 * 
+	 * @throws InterruptedException
+	 */
+	@Test
+	public void skipClaimedHumanTask() throws InterruptedException {
+		KnowledgeBase kbase = this.createKnowledgeBase();
+		session = JPAKnowledgeService.newStatefulKnowledgeSession(kbase, null,
+				env);
+
+		// this will log in audit tables
+		new JPAWorkingMemoryDbLogger(session);
+
+		KnowledgeRuntimeLoggerFactory.newConsoleLogger(session);
+
+		// Logger that will give information about the process state, variables,
+		// etc
+		JPAProcessInstanceDbLog processLog = new JPAProcessInstanceDbLog(
+				session.getEnvironment());
+
+		CommandBasedWSHumanTaskHandler wsHumanTaskHandler = new CommandBasedWSHumanTaskHandler(
+				session);
+		wsHumanTaskHandler.setClient(client.getTaskClient());
+		session.getWorkItemManager().registerWorkItemHandler("Human Task",
+				wsHumanTaskHandler);
+		ProcessInstance process = session.createProcessInstance("TwoTasksTest",
+				null);
+		session.insert(process);
+		long processInstanceId = process.getId();
+		session.startProcessInstance(processInstanceId);
+		Thread.sleep(2000);
+
+		List<TaskSummary> tasks = client.getTasksAssignedAsPotentialOwner(
+				"testUser1", "en-UK",
+				this.getTestUserGroupsAssignments().get("testUser1"));
+
+		Assert.assertEquals(1, tasks.size());
+		long taskId = tasks.get(0).getId();
+
 		client.claim(taskId, "testUser1", this.getTestUserGroupsAssignments()
 				.get("testUser1"));
 
-		// now, testUser1, delegates the task to testUser2
-		client.delegate(taskId, "testUser1", "testUser2");
+		// Here we skip the In Progress task-
+		client.skip(taskId, "testUser1");
 
-		// testUser2 will have the task assigned
-		// ended first task, let's take the second..
+		tasks = client.getTasksOwned("testUser1", "en-UK");
+		Assert.assertEquals(1, tasks.size());
+		Assert.assertEquals(Status.Obsolete, tasks.get(0).getStatus());
+
+		// And then the process continues.
 		List<TaskSummary> tasksUser2 = client.getTasksAssignedAsPotentialOwner(
 				"testUser2", "en-UK",
 				this.getTestUserGroupsAssignments().get("testUser2"));
 
 		Assert.assertEquals(1, tasksUser2.size());
-		Assert.assertEquals(taskId, tasksUser2.get(0).getId());
+		taskId = tasksUser2.get(0).getId();
 		client.claim(taskId, "testUser2", this.getTestUserGroupsAssignments()
 				.get("testUser2"));
 		client.start(taskId, "testUser2");
@@ -143,30 +210,19 @@ public class DelegateTaskTest extends BaseHumanTaskTest {
 		Assert.assertEquals(1, tasksUser2.size());
 		Assert.assertEquals(Status.Completed, tasksUser2.get(0).getStatus());
 
-		// Ok, now the flow continues for the next task.
-		tasksUser2 = client.getTasksAssignedAsPotentialOwner("testUser2",
-				"en-UK", this.getTestUserGroupsAssignments().get("testUser2"));
-
-		Assert.assertEquals(1, tasksUser2.size());
-		client.claim(tasksUser2.get(0).getId(), "testUser2", this
-				.getTestUserGroupsAssignments().get("testUser2"));
-		client.start(tasksUser2.get(0).getId(), "testUser2");
-		client.complete(tasksUser2.get(0).getId(), "testUser2", null);
-		Thread.sleep(1000);
-
 		// now check in the logs the process finished.
 		ProcessInstanceLog processInstanceLog = processLog
 				.findProcessInstance(processInstanceId);
 		Assert.assertNotNull(processInstanceLog.getEnd());
 	}
-
+	
 	/**
-	 * This test shows how the Administrator can delegate a claimed task.
+	 * Remove a task which is unclaimed.
 	 * 
 	 * @throws InterruptedException
 	 */
 	@Test
-	public void administratorDelegatesClaimedTask() throws InterruptedException {
+	public void skipUnclaimedHumanTask() throws InterruptedException {
 		KnowledgeBase kbase = this.createKnowledgeBase();
 		session = JPAKnowledgeService.newStatefulKnowledgeSession(kbase, null,
 				env);
@@ -192,28 +248,26 @@ public class DelegateTaskTest extends BaseHumanTaskTest {
 		long processInstanceId = process.getId();
 		session.startProcessInstance(processInstanceId);
 		Thread.sleep(2000);
+
 		List<TaskSummary> tasks = client.getTasksAssignedAsPotentialOwner(
 				"testUser1", "en-UK",
 				this.getTestUserGroupsAssignments().get("testUser1"));
 
 		Assert.assertEquals(1, tasks.size());
-
 		long taskId = tasks.get(0).getId();
-		// testUser1 claims his task. After that, he is the actual owner
-		client.claim(taskId, "testUser1", this.getTestUserGroupsAssignments()
-				.get("testUser1"));
 
-		// now, the Administrator, delegates the task to testUser2
-		client.delegate(taskId, "Administrator", "testUser2");
+		// Here we skip the unclaimed task.
+		client.skip(taskId, "Administrator");
+		
+		Thread.sleep(1000);
 
-		// testUser2 will have the task assigned
-		// ended first task, let's take the second..
+		// And then the process continues.
 		List<TaskSummary> tasksUser2 = client.getTasksAssignedAsPotentialOwner(
 				"testUser2", "en-UK",
 				this.getTestUserGroupsAssignments().get("testUser2"));
 
 		Assert.assertEquals(1, tasksUser2.size());
-		Assert.assertEquals(taskId, tasksUser2.get(0).getId());
+		taskId = tasksUser2.get(0).getId();
 		client.claim(taskId, "testUser2", this.getTestUserGroupsAssignments()
 				.get("testUser2"));
 		client.start(taskId, "testUser2");
@@ -224,100 +278,11 @@ public class DelegateTaskTest extends BaseHumanTaskTest {
 		Assert.assertEquals(1, tasksUser2.size());
 		Assert.assertEquals(Status.Completed, tasksUser2.get(0).getStatus());
 
-		// Ok, now the flow continues for the next task.
-		tasksUser2 = client.getTasksAssignedAsPotentialOwner("testUser2",
-				"en-UK", this.getTestUserGroupsAssignments().get("testUser2"));
-
-		Assert.assertEquals(1, tasksUser2.size());
-		client.claim(tasksUser2.get(0).getId(), "testUser2", this
-				.getTestUserGroupsAssignments().get("testUser2"));
-		client.start(tasksUser2.get(0).getId(), "testUser2");
-		client.complete(tasksUser2.get(0).getId(), "testUser2", null);
-		Thread.sleep(1000);
-
 		// now check in the logs the process finished.
 		ProcessInstanceLog processInstanceLog = processLog
 				.findProcessInstance(processInstanceId);
 		Assert.assertNotNull(processInstanceLog.getEnd());
 	}
 
-	/**
-	 * This test shows how the Administrator can delegate an unclaimed task.
-	 * 
-	 * @throws InterruptedException
-	 */
-	@Test
-	public void administratorDelegatesUnclaimedTask()
-			throws InterruptedException {
-		KnowledgeBase kbase = this.createKnowledgeBase();
-		session = JPAKnowledgeService.newStatefulKnowledgeSession(kbase, null,
-				env);
-
-		// this will log in audit tables
-		new JPAWorkingMemoryDbLogger(session);
-
-		KnowledgeRuntimeLoggerFactory.newConsoleLogger(session);
-
-		// Logger that will give information about the process state, variables,
-		// etc
-		JPAProcessInstanceDbLog processLog = new JPAProcessInstanceDbLog(
-				session.getEnvironment());
-
-		CommandBasedWSHumanTaskHandler wsHumanTaskHandler = new CommandBasedWSHumanTaskHandler(
-				session);
-		wsHumanTaskHandler.setClient(client.getTaskClient());
-		session.getWorkItemManager().registerWorkItemHandler("Human Task",
-				wsHumanTaskHandler);
-		ProcessInstance process = session.createProcessInstance("TwoTasksTest",
-				null);
-		session.insert(process);
-		long processInstanceId = process.getId();
-		session.startProcessInstance(processInstanceId);
-		Thread.sleep(2000);
-		List<TaskSummary> tasks = client.getTasksAssignedAsPotentialOwner(
-				"testUser1", "en-UK",
-				this.getTestUserGroupsAssignments().get("testUser1"));
-
-		Assert.assertEquals(1, tasks.size());
-
-		long taskId = tasks.get(0).getId();
-
-		// now, the Administrator, delegates the task to testUser2
-		client.delegate(taskId, "Administrator", "testUser2");
-
-		// testUser2 will have the task assigned
-		// ended first task, let's take the second..
-		List<TaskSummary> tasksUser2 = client.getTasksAssignedAsPotentialOwner(
-				"testUser2", "en-UK",
-				this.getTestUserGroupsAssignments().get("testUser2"));
-
-		Assert.assertEquals(1, tasksUser2.size());
-		Assert.assertEquals(taskId, tasksUser2.get(0).getId());
-		client.claim(taskId, "testUser2", this.getTestUserGroupsAssignments()
-				.get("testUser2"));
-		client.start(taskId, "testUser2");
-		client.complete(taskId, "testUser2", null);
-
-		// Reload the tasks to see new status.
-		tasksUser2 = client.getTasksOwned("testUser2", "en-UK");
-		Assert.assertEquals(1, tasksUser2.size());
-		Assert.assertEquals(Status.Completed, tasksUser2.get(0).getStatus());
-
-		// Ok, now the flow continues for the next task.
-		tasksUser2 = client.getTasksAssignedAsPotentialOwner("testUser2",
-				"en-UK", this.getTestUserGroupsAssignments().get("testUser2"));
-
-		Assert.assertEquals(1, tasksUser2.size());
-		client.claim(tasksUser2.get(0).getId(), "testUser2", this
-				.getTestUserGroupsAssignments().get("testUser2"));
-		client.start(tasksUser2.get(0).getId(), "testUser2");
-		client.complete(tasksUser2.get(0).getId(), "testUser2", null);
-		Thread.sleep(1000);
-
-		// now check in the logs the process finished.
-		ProcessInstanceLog processInstanceLog = processLog
-				.findProcessInstance(processInstanceId);
-		Assert.assertNotNull(processInstanceLog.getEnd());
-	}
 
 }
