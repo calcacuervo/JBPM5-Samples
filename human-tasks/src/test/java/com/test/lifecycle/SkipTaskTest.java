@@ -258,8 +258,6 @@ public class SkipTaskTest extends BaseHumanTaskTest {
 
 		// Here we skip the unclaimed task.
 		client.skip(taskId, "Administrator");
-		
-		Thread.sleep(1000);
 
 		// And then the process continues.
 		List<TaskSummary> tasksUser2 = client.getTasksAssignedAsPotentialOwner(

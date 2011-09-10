@@ -80,7 +80,6 @@ public class ReleaseTaskTest extends BaseHumanTaskTest {
 	 * @throws InterruptedException
 	 */
 	@Test
-	@Ignore
 	public void releaseHumanTask() throws InterruptedException {
 		KnowledgeBase kbase = this.createKnowledgeBase();
 		session = JPAKnowledgeService.newStatefulKnowledgeSession(kbase, null,
@@ -129,7 +128,7 @@ public class ReleaseTaskTest extends BaseHumanTaskTest {
 		tasks = client.getTasksAssignedAsPotentialOwner("testUser2", "en-UK",
 				this.getTestUserGroupsAssignments().get("testUser2"));
 
-		Assert.assertEquals(0, tasks.size());		
+		Assert.assertEquals(0, tasks.size());
 
 		client.start(taskId, "testUser1");
 
@@ -145,13 +144,10 @@ public class ReleaseTaskTest extends BaseHumanTaskTest {
 		Assert.assertEquals(1, tasks.size());
 		taskId = tasks.get(0).getId();
 		client.claim(taskId, "testUser1", this.getTestUserGroupsAssignments().get("testUser2"));
-		Thread.sleep(1000);
 		client.start(taskId, "testUser1");
-		Thread.sleep(1000);
 		client.complete(taskId, "testUser1", null);
-		Thread.sleep(1000);
 
-		tasks = client.getTasksOwned("testUser2", "en-UK");
+		tasks = client.getTasksOwned("testUser1", "en-UK");
 		Assert.assertEquals(1, tasks.size());
 		Assert.assertEquals(Status.Completed, tasks.get(0).getStatus());
 

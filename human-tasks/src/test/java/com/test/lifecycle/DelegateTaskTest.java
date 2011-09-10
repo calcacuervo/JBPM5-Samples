@@ -126,7 +126,6 @@ public class DelegateTaskTest extends BaseHumanTaskTest {
 		client.delegate(taskId, "testUser1", "testUser2");
 
 		// testUser2 will have the task assigned
-		// ended first task, let's take the second..
 		List<TaskSummary> tasksUser2 = client.getTasksAssignedAsPotentialOwner(
 				"testUser2", "en-UK",
 				this.getTestUserGroupsAssignments().get("testUser2"));
@@ -152,7 +151,6 @@ public class DelegateTaskTest extends BaseHumanTaskTest {
 				.getTestUserGroupsAssignments().get("testUser2"));
 		client.start(tasksUser2.get(0).getId(), "testUser2");
 		client.complete(tasksUser2.get(0).getId(), "testUser2", null);
-		Thread.sleep(1000);
 
 		// now check in the logs the process finished.
 		ProcessInstanceLog processInstanceLog = processLog
@@ -233,7 +231,6 @@ public class DelegateTaskTest extends BaseHumanTaskTest {
 				.getTestUserGroupsAssignments().get("testUser2"));
 		client.start(tasksUser2.get(0).getId(), "testUser2");
 		client.complete(tasksUser2.get(0).getId(), "testUser2", null);
-		Thread.sleep(1000);
 
 		// now check in the logs the process finished.
 		ProcessInstanceLog processInstanceLog = processLog
@@ -312,7 +309,6 @@ public class DelegateTaskTest extends BaseHumanTaskTest {
 				.getTestUserGroupsAssignments().get("testUser2"));
 		client.start(tasksUser2.get(0).getId(), "testUser2");
 		client.complete(tasksUser2.get(0).getId(), "testUser2", null);
-		Thread.sleep(1000);
 
 		// now check in the logs the process finished.
 		ProcessInstanceLog processInstanceLog = processLog

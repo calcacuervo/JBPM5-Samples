@@ -12,7 +12,7 @@
              xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
              xmlns:tns="http://www.jboss.org/drools">
 
-  <process processType="Private" isExecutable="true" id="SimpleTest" name="SimpleTest" tns:packageName="org.test" >
+  <process processType="Private" isExecutable="true" id="HumanTaskAssignedToUser" name="HumanTaskAssignedToUser" tns:packageName="org.test" >
 
     <!-- nodes -->
     <startEvent id="_1" name="Start" />
@@ -46,13 +46,13 @@
       <dataInputAssociation>
         <targetRef>_2_GroupIdInput</targetRef>
         <assignment>
-          <from xsi:type="tFormalExpression">testGroup1</from>
+          <from xsi:type="tFormalExpression"></from>
           <to xsi:type="tFormalExpression">_2_GroupIdInput</to>
         </assignment>
       </dataInputAssociation>
       <potentialOwner>
         <resourceAssignmentExpression>
-          <formalExpression></formalExpression>
+          <formalExpression>testUser1</formalExpression>
         </resourceAssignmentExpression>
       </potentialOwner>
     </userTask>
@@ -71,7 +71,7 @@
   </process>
 
   <bpmndi:BPMNDiagram>
-    <bpmndi:BPMNPlane bpmnElement="SimpleTest" >
+    <bpmndi:BPMNPlane bpmnElement="HumanTaskAssignedToUser" >
       <bpmndi:BPMNShape bpmnElement="_1" >
         <dc:Bounds x="16" y="16" width="48" height="48" />
       </bpmndi:BPMNShape>

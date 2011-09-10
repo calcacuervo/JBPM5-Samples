@@ -4,9 +4,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.ObjectOutputStream;
 import java.util.List;
 
-import javax.transaction.TransactionManager;
-
+import org.jbpm.process.workitem.wsht.BlockingGetTaskResponseHandler;
 import org.jbpm.task.AccessType;
+import org.jbpm.task.Task;
 import org.jbpm.task.query.TaskSummary;
 import org.jbpm.task.service.ContentData;
 import org.jbpm.task.service.TaskClient;
@@ -65,6 +65,12 @@ public class TaskClientWrapper {
 		BlockingTaskOperationResponseHandler responseHandler = new BlockingTaskOperationResponseHandler();
 		client.delegate(taskId, userId, targetUserId, responseHandler);
 		responseHandler.waitTillDone(1000);
+		//Wait for some time so that the process follows.
+		try {
+			Thread.sleep(1000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	public void remove(long taskId, final String userId) {
@@ -120,12 +126,25 @@ public class TaskClientWrapper {
 		BlockingTaskOperationResponseHandler completeOperationResponseHandler = new BlockingTaskOperationResponseHandler();
 		client.complete(taskId, userId, null, completeOperationResponseHandler);
 		completeOperationResponseHandler.waitTillDone(1000);
+		
+		//Wait for some time so that the process follows.
+		try {
+			Thread.sleep(1000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	public void skip(long taskId, final String userId) {
 		BlockingTaskOperationResponseHandler completeOperationResponseHandler = new BlockingTaskOperationResponseHandler();
 		client.skip(taskId, userId, completeOperationResponseHandler);
 		completeOperationResponseHandler.waitTillDone(1000);
+		//Wait for some time so that the process follows.
+		try {
+			Thread.sleep(1000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 	}
 
 
@@ -135,7 +154,7 @@ public class TaskClientWrapper {
 			language = "en-UK";
 		}
 		BlockingTaskSummaryResponseHandler responseHandler = null;
-		if (groups.isEmpty()) {
+		if (groups == null || groups.isEmpty()) {
 			responseHandler = new BlockingTaskSummaryResponseHandler();
 			client.getTasksAssignedAsPotentialOwner(userId, language,
 					responseHandler);
@@ -161,5 +180,12 @@ public class TaskClientWrapper {
 		responseHandler.waitTillDone(1000);
 		List<TaskSummary> tasks = responseHandler.getResults();
 		return tasks;
+	}
+	
+	public Task getTask(long taskId) {
+		BlockingGetTaskResponseHandler responseHandler = new BlockingGetTaskResponseHandler();
+		client.getTask(taskId, responseHandler);
+		responseHandler.waitTillDone(1000);
+		return responseHandler.getTask();
 	}
 }
