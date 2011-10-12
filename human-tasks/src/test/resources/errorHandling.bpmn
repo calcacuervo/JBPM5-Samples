@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<definitions id="Definition"
+             targetNamespace="http://www.jboss.org/drools"
+             typeLanguage="http://www.java.com/javaTypes"
+             expressionLanguage="http://www.mvel.org/2.0"
+             xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="http://www.omg.org/spec/BPMN/20100524/MODEL BPMN20.xsd"
+             xmlns:g="http://www.jboss.org/drools/flow/gpd"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:tns="http://www.jboss.org/drools">
+
+  <itemDefinition id="_ErrorItem" structureRef="Object" />
+  <itemDefinition id="_widItem" structureRef="Object" />
+
+  <process processType="Private" isExecutable="true" id="test" name="errorHandling.b" >
+
+    <extensionElements>
+     <tns:import name="org.drools.runtime.StatefulKnowledgeSession" />
+     <tns:import name="java.util.HashMap" />
+    </extensionElements>
+    <!-- process variables -->
+    <property id="Error" itemSubjectRef="_ErrorItem"/>
+    <property id="wid" itemSubjectRef="_widItem"/>
+
+    <!-- nodes -->
+    <startEvent id="_1" name="Start" />
+    <task id="_2" name="TaskThatWillFail" tns:taskName="TaskFail" >
+      <ioSpecification>
+        <inputSet>
+        </inputSet>
+        <outputSet>
+        </outputSet>
+      </ioSpecification>
+    </task>
+    <endEvent id="_3" name="End" >
+        <terminateEventDefinition/>
+    </endEvent>
+    <intermediateCatchEvent id="_4" name="Signal" >
+      <dataOutput id="_4_Output" name="event" />
+      <dataOutputAssociation>
+      <sourceRef>_4_Output</sourceRef>
+      <targetRef>Error</targetRef>
+      </dataOutputAssociation>
+      <outputSet>
+        <dataOutputRefs>_4_Output</dataOutputRefs>
+      </outputSet>
+      <signalEventDefinition signalRef="Error"/>
+    </intermediateCatchEvent>
+    <endEvent id="_5" name="End" >
+        <terminateEventDefinition/>
+    </endEvent>
+    <scriptTask id="_6" name="Error Path" scriptFormat="http://www.java.com/java" >
+      <script>System.out.println("There was an error.. Reporting!!");</script>
+    </scriptTask>
+    <userTask id="_7" name="Assign Error for User" >
+      <ioSpecification>
+        <dataInput id="_7_CommentInput" name="Comment" />
+        <dataOutput id="_7_widOutput" name="wid" />
+        <inputSet>
+          <dataInputRefs>_7_CommentInput</dataInputRefs>
+        </inputSet>
+        <outputSet>
+          <dataOutputRefs>_7_widOutput</dataOutputRefs>
+        </outputSet>
+      </ioSpecification>
+      <dataInputAssociation>
+        <targetRef>_7_CommentInput</targetRef>
+        <assignment>
+          <from xsi:type="tFormalExpression">en-UK</from>
+          <to xsi:type="tFormalExpression">_7_CommentInput</to>
+        </assignment>
+      </dataInputAssociation>
+      <dataOutputAssociation>
+        <sourceRef>_7_widOutput</sourceRef>
+        <targetRef>wid</targetRef>
+      </dataOutputAssociation>
+      <potentialOwner>
+        <resourceAssignmentExpression>
+          <formalExpression>Administrator</formalExpression>
+        </resourceAssignmentExpression>
+      </potentialOwner>
+    </userTask>
+    <scriptTask id="_8" name="Recovered" scriptFormat="http://www.java.com/java" >
+      <script>System.out.println("Recovered");</script>
+    </scriptTask>
+    <scriptTask id="_9" name="Call Complete WI" scriptFormat="http://www.java.com/java" >
+      <script>((StatefulKnowledgeSession)kcontext.getKnowledgeRuntime()).getWorkItemManager().completeWorkItem((Long)wid, new HashMap());</script>
+    </scriptTask>
+
+    <!-- connections -->
+    <sequenceFlow id="_1-_2" sourceRef="_1" targetRef="_2" />
+    <sequenceFlow id="_8-_3" sourceRef="_8" targetRef="_3" />
+    <sequenceFlow id="_9-_5" sourceRef="_9" targetRef="_5" />
+    <sequenceFlow id="_4-_6" sourceRef="_4" targetRef="_6" />
+    <sequenceFlow id="_6-_7" sourceRef="_6" targetRef="_7" />
+    <sequenceFlow id="_2-_8" sourceRef="_2" targetRef="_8" />
+    <sequenceFlow id="_7-_9" sourceRef="_7" targetRef="_9" />
+
+  </process>
+
+  <bpmndi:BPMNDiagram>
+    <bpmndi:BPMNPlane bpmnElement="test" >
+      <bpmndi:BPMNShape bpmnElement="_1" >
+        <dc:Bounds x="60" y="16" width="48" height="48" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="_2" >
+        <dc:Bounds x="34" y="96" width="100" height="48" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="_3" >
+        <dc:Bounds x="60" y="256" width="48" height="48" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="_4" >
+        <dc:Bounds x="272" y="16" width="48" height="48" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="_5" >
+        <dc:Bounds x="272" y="336" width="48" height="48" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="_6" >
+        <dc:Bounds x="256" y="96" width="80" height="48" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="_7" >
+        <dc:Bounds x="185" y="176" width="222" height="48" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="_8" >
+        <dc:Bounds x="16" y="176" width="137" height="48" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="_9" >
+        <dc:Bounds x="204" y="256" width="184" height="48" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge bpmnElement="_1-_2" >
+        <di:waypoint x="84" y="40" />
+        <di:waypoint x="84" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="_8-_3" >
+        <di:waypoint x="84" y="200" />
+        <di:waypoint x="84" y="280" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="_9-_5" >
+        <di:waypoint x="296" y="280" />
+        <di:waypoint x="296" y="360" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="_4-_6" >
+        <di:waypoint x="296" y="40" />
+        <di:waypoint x="296" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="_6-_7" >
+        <di:waypoint x="296" y="120" />
+        <di:waypoint x="296" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="_2-_8" >
+        <di:waypoint x="84" y="120" />
+        <di:waypoint x="84" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="_7-_9" >
+        <di:waypoint x="296" y="200" />
+        <di:waypoint x="296" y="280" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</definitions>

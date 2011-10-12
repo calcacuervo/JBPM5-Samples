@@ -12,8 +12,8 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<jbpm.version>5.2.0-SNAPSHOT</jbpm.version>
 		<spring.version>3.0.3.RELEASE</spring.version>
-		<hornetq.version>2.0.0.GA</hornetq.version>
-		<netty.version>3.1.5.GA</netty.version>
+		<hornetq.version>2.2.2.Final</hornetq.version>
+		<netty.version>3.2.0.Final</netty.version>
 		<junit.version>4.8.1</junit.version>
 	</properties>
 

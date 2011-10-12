@@ -277,6 +277,8 @@ public class HumanTaskTest extends BaseHumanTaskTest {
 		wsHumanTaskHandler.setClient(client.getTaskClient());
 		session.getWorkItemManager().registerWorkItemHandler("Human Task",
 				wsHumanTaskHandler);
+		Map<String, Object> vars = new HashMap<String, Object>();
+		vars.put("testVar", "A value");
 		ProcessInstance process = session.createProcessInstance(
 				"HumanTaskAssignedToUser", null);
 		session.insert(process);
@@ -291,6 +293,8 @@ public class HumanTaskTest extends BaseHumanTaskTest {
 		Assert.assertEquals(1, tasks.size());
 
 		// complete task. As it is automatically put in reserved, we don't have to claim it.
+		Map<String, Object> params = (Map<String, Object>) client.getTaskContent(tasks.get(0).getId());
+		Assert.assertEquals("A value", params.get("testVar"));
 		Assert.assertEquals(Status.Reserved, tasks.get(0).getStatus());
 		client.start(tasks.get(0).getId(), "testUser1");
 		client.complete(tasks.get(0).getId(), "testUser1", null);

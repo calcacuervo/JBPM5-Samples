@@ -12,16 +12,23 @@
              xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
              xmlns:tns="http://www.jboss.org/drools">
 
+  <itemDefinition id="_testVarItem" structureRef="Object" />
+
   <process processType="Private" isExecutable="true" id="HumanTaskAssignedToUser" name="HumanTaskAssignedToUser" tns:packageName="org.test" >
+
+    <!-- process variables -->
+    <property id="testVar" itemSubjectRef="_testVarItem"/>
 
     <!-- nodes -->
     <startEvent id="_1" name="Start" />
     <userTask id="_2" name="TestHumanTask" >
       <ioSpecification>
+        <dataInput id="_2_testVarInput" name="testVar" />
         <dataInput id="_2_CommentInput" name="Comment" />
         <dataInput id="_2_TaskNameInput" name="TaskName" />
         <dataInput id="_2_GroupIdInput" name="GroupId" />
         <inputSet>
+          <dataInputRefs>_2_testVarInput</dataInputRefs>
           <dataInputRefs>_2_CommentInput</dataInputRefs>
           <dataInputRefs>_2_TaskNameInput</dataInputRefs>
           <dataInputRefs>_2_GroupIdInput</dataInputRefs>
@@ -29,6 +36,10 @@
         <outputSet>
         </outputSet>
       </ioSpecification>
+      <dataInputAssociation>
+        <sourceRef>testVar</sourceRef>
+        <targetRef>_2_testVarInput</targetRef>
+      </dataInputAssociation>
       <dataInputAssociation>
         <targetRef>_2_CommentInput</targetRef>
         <assignment>

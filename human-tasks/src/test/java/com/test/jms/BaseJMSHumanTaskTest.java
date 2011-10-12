@@ -1,10 +1,12 @@
 package com.test.jms;
 
+import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
+import javax.jms.ConnectionFactory;
 import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
@@ -27,18 +29,19 @@ import org.drools.runtime.Environment;
 import org.drools.runtime.EnvironmentName;
 import org.drools.runtime.process.ProcessRuntimeFactory;
 import org.hornetq.api.core.TransportConfiguration;
+import org.hornetq.core.config.Configuration;
 import org.hornetq.core.config.impl.ConfigurationImpl;
+import org.hornetq.core.remoting.impl.netty.NettyAcceptorFactory;
+import org.hornetq.core.remoting.impl.netty.NettyConnectorFactory;
 import org.hornetq.core.server.HornetQServer;
 import org.hornetq.core.server.HornetQServers;
-import org.hornetq.integration.transports.netty.NettyAcceptorFactory;
-import org.hornetq.integration.transports.netty.NettyConnectorFactory;
 import org.hornetq.jms.server.JMSServerManager;
 import org.hornetq.jms.server.config.ConnectionFactoryConfiguration;
 import org.hornetq.jms.server.config.JMSConfiguration;
-import org.hornetq.jms.server.config.QueueConfiguration;
+import org.hornetq.jms.server.config.JMSQueueConfiguration;
 import org.hornetq.jms.server.config.impl.ConnectionFactoryConfigurationImpl;
 import org.hornetq.jms.server.config.impl.JMSConfigurationImpl;
-import org.hornetq.jms.server.config.impl.QueueConfigurationImpl;
+import org.hornetq.jms.server.config.impl.JMSQueueConfigurationImpl;
 import org.hornetq.jms.server.impl.JMSServerManagerImpl;
 import org.jbpm.process.builder.ProcessBuilderFactoryServiceImpl;
 import org.jbpm.process.instance.ProcessRuntimeFactoryServiceImpl;
@@ -208,69 +211,58 @@ public abstract class BaseJMSHumanTaskTest {
 
 	private void startHornet() {
 		try {
-
-			// Step 1. Create HornetQ core configuration, and set the properties
-			// accordingly
-			org.hornetq.core.config.Configuration configuration = new ConfigurationImpl();
-			configuration.setPersistenceEnabled(false);
-			configuration.setSecurityEnabled(false);
-			configuration.getAcceptorConfigurations().add(
-					new TransportConfiguration(NettyAcceptorFactory.class
-							.getName()));
-
-			// Step 2. Create HornetQ core server
-			HornetQServer hornetqServer = HornetQServers
-					.newHornetQServer(configuration);
-			// Step 3. Create and start the JNDI server
-			System.setProperty("java.naming.factory.initial",
-					"org.jnp.interfaces.NamingContextFactory");
-			NamingBeanImpl naming = new NamingBeanImpl();
-			naming.start();
-
-			Main jndiServer;
-			jndiServer = new Main();
-			jndiServer.setNamingInfo(naming);
-			jndiServer.setPort(1099);
-			jndiServer.setBindAddress("localhost");
-			jndiServer.setRmiPort(1098);
-			jndiServer.setRmiBindAddress("localhost");
-			jndiServer.start();
-
-			JMSServerManager jmsServer;
-			// Step 4. Create the JMS configuration
-			JMSConfiguration jmsConfig = new JMSConfigurationImpl();
-
-			// Step 5. Configure context used to bind the JMS resources to JNDI
-			Hashtable<String, String> env = new Hashtable<String, String>();
-			env.put("java.naming.factory.initial",
-					"org.jnp.interfaces.NamingContextFactory");
-			env.put("java.naming.provider.url", "jnp://localhost:1099");
-			env.put("java.naming.factory.url.pkgs", "org.apache.naming");
-			context = new InitialContext(env);
-			jmsConfig.setContext(context);
-
-			// Step 6. Configure the JMS ConnectionFactory
-			TransportConfiguration connectorConfig = new TransportConfiguration(
+			Configuration configuration = new ConfigurationImpl();
+            configuration.setPersistenceEnabled(false);
+            configuration.setSecurityEnabled(false);
+            TransportConfiguration connectorConfig = new TransportConfiguration(
 					NettyConnectorFactory.class.getName());
+            configuration.getAcceptorConfigurations().add(new TransportConfiguration(NettyAcceptorFactory.class.getName()));
+			HornetQServer hornetqServer = HornetQServers
+			.newHornetQServer(configuration);
+
+			System.setProperty("java.naming.factory.initial", "org.jnp.interfaces.NamingContextFactory");
+            NamingBeanImpl naming = new NamingBeanImpl();
+            naming.start();
+            Main jndiServer = new Main();
+            jndiServer.setNamingInfo(naming);
+            jndiServer.setPort(1099);
+            jndiServer.setBindAddress("localhost");
+            jndiServer.setRmiPort(1098);
+            jndiServer.setRmiBindAddress("localhost");         
+            jndiServer.start();
+
+            JMSConfiguration jmsConfig = new JMSConfigurationImpl();
+            
+            Hashtable<String, String> env = new Hashtable<String, String>();
+            env.put("java.naming.factory.initial", "org.jnp.interfaces.NamingContextFactory");
+            env.put("java.naming.provider.url", "jnp://localhost:1099");
+            env.put("java.naming.factory.url.pkgs", "org.jboss.naming:org.jnp.interfaces");
+            Context context = new InitialContext(env);
+            jmsConfig.setContext(context);
+			configuration.getConnectorConfigurations().put("connector",
+					connectorConfig);
+
+
+			// Step 3. Configure the JMS ConnectionFactory
+			ArrayList<String> connectorNames = new ArrayList<String>();
+			connectorNames.add("connector");
+
 			ConnectionFactoryConfiguration cfConfig = new ConnectionFactoryConfigurationImpl(
-					"XAConnectionFactory", connectorConfig,
+					"XAConnectionFactory", false, connectorNames,
 					"XAConnectionFactory");
-			jmsConfig.getConnectionFactoryConfigurations().add(cfConfig);
-
-			// Step 7. Configure the JMS Queue
-			QueueConfiguration queueConfig = new QueueConfigurationImpl(
-					"tasksQueue", null, false, "/queue/TasksQueue");
+            jmsConfig.getConnectionFactoryConfigurations().add(cfConfig);
+            JMSQueueConfiguration queueConfig = new JMSQueueConfigurationImpl(
+					"tasksQueue", null, false, "/queue/tasksQueue");
+			JMSQueueConfiguration queueConfig2 = new JMSQueueConfigurationImpl(
+					"tasksResponseQueue", null, false,
+					"/queue/tasksResponseQueue");
 			jmsConfig.getQueueConfigurations().add(queueConfig);
-			queueConfig = new QueueConfigurationImpl("tasksResponseQueue",
-					null, false, "/queue/TasksResponseQueue");
-			jmsConfig.getQueueConfigurations().add(queueConfig);
+			jmsConfig.getQueueConfigurations().add(queueConfig2);
+            JMSServerManager jmsServer = new JMSServerManagerImpl(hornetqServer, jmsConfig);
+            jmsServer.start();
 
-			// Step 8. Start the JMS Server using the HornetQ core server and
-			// the JMS configuration
-			jmsServer = new JMSServerManagerImpl(hornetqServer, jmsConfig);
-			jmsServer.start();
-			System.out.println("Started Embedded JMS Server");
-
+            ConnectionFactory cf = (ConnectionFactory)context.lookup("XAConnectionFactory");
+            
 		} catch (Exception e) {
 			throw new RuntimeException(
 					"There was an error when starting hornetq server", e);

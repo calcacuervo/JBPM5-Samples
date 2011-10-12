@@ -1,15 +1,20 @@
 package com.test;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.List;
 
 import org.jbpm.process.workitem.wsht.BlockingGetTaskResponseHandler;
 import org.jbpm.task.AccessType;
+import org.jbpm.task.Content;
 import org.jbpm.task.Task;
 import org.jbpm.task.query.TaskSummary;
 import org.jbpm.task.service.ContentData;
 import org.jbpm.task.service.TaskClient;
+import org.jbpm.task.service.responsehandlers.BlockingGetContentResponseHandler;
 import org.jbpm.task.service.responsehandlers.BlockingTaskOperationResponseHandler;
 import org.jbpm.task.service.responsehandlers.BlockingTaskSummaryResponseHandler;
 
@@ -26,7 +31,7 @@ public class TaskClientWrapper {
 	 * The wrapped client.
 	 */
 	private TaskClient client;
-	
+
 	/**
 	 * Creates a new {@link TaskClientWrapper} instance.
 	 * 
@@ -60,31 +65,31 @@ public class TaskClientWrapper {
 		client.claim(taskId, userId, groups, claimOperationResponseHandler);
 		claimOperationResponseHandler.waitTillDone(1000);
 	}
-	
+
 	public void delegate(long taskId, final String userId, String targetUserId) {
 		BlockingTaskOperationResponseHandler responseHandler = new BlockingTaskOperationResponseHandler();
 		client.delegate(taskId, userId, targetUserId, responseHandler);
 		responseHandler.waitTillDone(1000);
-		//Wait for some time so that the process follows.
+		// Wait for some time so that the process follows.
 		try {
 			Thread.sleep(1000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
 	}
-	
+
 	public void remove(long taskId, final String userId) {
 		BlockingTaskOperationResponseHandler responseHandler = new BlockingTaskOperationResponseHandler();
 		client.remove(taskId, userId, responseHandler);
 		responseHandler.waitTillDone(1000);
 	}
-	
+
 	public void release(long taskId, final String userId) {
 		BlockingTaskOperationResponseHandler responseHandler = new BlockingTaskOperationResponseHandler();
 		client.release(taskId, userId, responseHandler);
 		responseHandler.waitTillDone(1000);
 	}
-	
+
 	public void resume(long taskId, final String userId) {
 		BlockingTaskOperationResponseHandler responseHandler = new BlockingTaskOperationResponseHandler();
 		client.resume(taskId, userId, responseHandler);
@@ -124,22 +129,10 @@ public class TaskClientWrapper {
 
 		}
 		BlockingTaskOperationResponseHandler completeOperationResponseHandler = new BlockingTaskOperationResponseHandler();
-		client.complete(taskId, userId, null, completeOperationResponseHandler);
+		client.complete(taskId, userId, data, completeOperationResponseHandler);
 		completeOperationResponseHandler.waitTillDone(1000);
-		
-		//Wait for some time so that the process follows.
-		try {
-			Thread.sleep(1000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-	}
-	
-	public void skip(long taskId, final String userId) {
-		BlockingTaskOperationResponseHandler completeOperationResponseHandler = new BlockingTaskOperationResponseHandler();
-		client.skip(taskId, userId, completeOperationResponseHandler);
-		completeOperationResponseHandler.waitTillDone(1000);
-		//Wait for some time so that the process follows.
+
+		// Wait for some time so that the process follows.
 		try {
 			Thread.sleep(1000);
 		} catch (InterruptedException e) {
@@ -147,6 +140,17 @@ public class TaskClientWrapper {
 		}
 	}
 
+	public void skip(long taskId, final String userId) {
+		BlockingTaskOperationResponseHandler completeOperationResponseHandler = new BlockingTaskOperationResponseHandler();
+		client.skip(taskId, userId, completeOperationResponseHandler);
+		completeOperationResponseHandler.waitTillDone(1000);
+		// Wait for some time so that the process follows.
+		try {
+			Thread.sleep(1000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
 
 	public List<TaskSummary> getTasksAssignedAsPotentialOwner(
 			final String userId, String language, List<String> groups) {
@@ -181,11 +185,34 @@ public class TaskClientWrapper {
 		List<TaskSummary> tasks = responseHandler.getResults();
 		return tasks;
 	}
-	
+
 	public Task getTask(long taskId) {
 		BlockingGetTaskResponseHandler responseHandler = new BlockingGetTaskResponseHandler();
 		client.getTask(taskId, responseHandler);
 		responseHandler.waitTillDone(1000);
 		return responseHandler.getTask();
+	}
+
+	public Object getTaskContent(long taskId) {
+		Task task = this.getTask(taskId);
+		BlockingGetContentResponseHandler contentResponseHandler = new BlockingGetContentResponseHandler();
+		client.getContent(task.getTaskData().getDocumentContentId(),
+				contentResponseHandler);
+
+		Content content = contentResponseHandler.getContent();
+
+		ByteArrayInputStream bais = new ByteArrayInputStream(
+				content.getContent());
+
+		ObjectInputStream ois;
+		try {
+			ois = new ObjectInputStream(bais);
+			Object vars = ois.readObject();
+			return vars;
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return null;
+		}
 	}
 }
