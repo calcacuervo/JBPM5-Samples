@@ -2,7 +2,7 @@ package com.test;
  
 import java.util.List;
 import java.lang.Long;
-import org.drools.runtime.process.WorkflowProcessInstance;
+import org.jbpm.workflow.instance.WorkflowProcessInstance;
 import java.util.Map;
 import java.util.HashMap;
 

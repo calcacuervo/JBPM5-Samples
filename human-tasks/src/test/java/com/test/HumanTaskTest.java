@@ -19,6 +19,7 @@ import org.jbpm.process.workitem.wsht.CommandBasedWSHumanTaskHandler;
 import org.jbpm.task.Status;
 import org.jbpm.task.query.TaskSummary;
 import org.jbpm.task.service.TaskClient;
+import org.jbpm.task.service.hornetq.CommandBasedHornetQWSHumanTaskHandler;
 import org.junit.Test;
 
 /**
@@ -84,7 +85,7 @@ public class HumanTaskTest extends BaseHumanTaskTest {
 		JPAProcessInstanceDbLog processLog = new JPAProcessInstanceDbLog(
 				session.getEnvironment());
 
-		CommandBasedWSHumanTaskHandler wsHumanTaskHandler = new CommandBasedWSHumanTaskHandler(
+		CommandBasedHornetQWSHumanTaskHandler wsHumanTaskHandler = new CommandBasedHornetQWSHumanTaskHandler(
 				session);
 		wsHumanTaskHandler.setClient(client.getTaskClient());
 		session.getWorkItemManager().registerWorkItemHandler("Human Task",
@@ -154,7 +155,7 @@ public class HumanTaskTest extends BaseHumanTaskTest {
 		JPAProcessInstanceDbLog processLog = new JPAProcessInstanceDbLog(
 				session.getEnvironment());
 
-		CommandBasedWSHumanTaskHandler wsHumanTaskHandler = new CommandBasedWSHumanTaskHandler(
+		CommandBasedHornetQWSHumanTaskHandler wsHumanTaskHandler = new CommandBasedHornetQWSHumanTaskHandler(
 				session);
 		wsHumanTaskHandler.setClient(client.getTaskClient());
 		session.getWorkItemManager().registerWorkItemHandler("Human Task",
@@ -199,7 +200,7 @@ public class HumanTaskTest extends BaseHumanTaskTest {
 		JPAProcessInstanceDbLog processLog = new JPAProcessInstanceDbLog(
 				session.getEnvironment());
 
-		CommandBasedWSHumanTaskHandler wsHumanTaskHandler = new CommandBasedWSHumanTaskHandler(
+		CommandBasedHornetQWSHumanTaskHandler wsHumanTaskHandler = new CommandBasedHornetQWSHumanTaskHandler(
 				session);
 		wsHumanTaskHandler.setClient(client.getTaskClient());
 		session.getWorkItemManager().registerWorkItemHandler("Human Task",
@@ -272,7 +273,7 @@ public class HumanTaskTest extends BaseHumanTaskTest {
 		JPAProcessInstanceDbLog processLog = new JPAProcessInstanceDbLog(
 				session.getEnvironment());
 
-		CommandBasedWSHumanTaskHandler wsHumanTaskHandler = new CommandBasedWSHumanTaskHandler(
+		CommandBasedHornetQWSHumanTaskHandler wsHumanTaskHandler = new CommandBasedHornetQWSHumanTaskHandler(
 				session);
 		wsHumanTaskHandler.setClient(client.getTaskClient());
 		session.getWorkItemManager().registerWorkItemHandler("Human Task",
@@ -280,7 +281,7 @@ public class HumanTaskTest extends BaseHumanTaskTest {
 		Map<String, Object> vars = new HashMap<String, Object>();
 		vars.put("testVar", "A value");
 		ProcessInstance process = session.createProcessInstance(
-				"HumanTaskAssignedToUser", null);
+				"HumanTaskAssignedToUser", vars);
 		session.insert(process);
 		long processInstanceId = process.getId();
 		session.startProcessInstance(processInstanceId);

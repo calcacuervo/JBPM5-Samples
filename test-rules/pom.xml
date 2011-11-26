@@ -3,19 +3,21 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
 	xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>com.wordpress.samples</groupId>
-	<artifactId>jbpm5-samples</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
-	<name>test</name>
+	<parent>
+		<artifactId>examples</artifactId>
+		<groupId>com.wordpress.demian</groupId>
+		<version>0.1-SNAPSHOT</version>
+	</parent>
+	<groupId>com.wordpress.demian</groupId>
+	<artifactId>rules</artifactId>
+	<version>0.1-SNAPSHOT</version>
+	<name>Demian Examples :: Rules</name>
 	<url>http://maven.apache.org</url>
 	<properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <jbpm.version>5.1.0.CR1</jbpm.version>
-    <drools.version>5.2.0.CR1</drools.version>
-    <spring.version>3.0.3.RELEASE</spring.version>
-    <hornetq.version>2.0.0.GA</hornetq.version>
-    <netty.version>3.1.5.GA</netty.version>
-    <junit.version>4.8.1</junit.version> 
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+		<spring.version>3.0.3.RELEASE</spring.version>
+		<junit.version>4.8.1</junit.version>
 	</properties>
 
 
@@ -24,15 +26,12 @@
 		<dependency>
 			<groupId>org.jbpm</groupId>
 			<artifactId>jbpm-flow</artifactId>
-			<version>${jbpm.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.jbpm</groupId>
 			<artifactId>jbpm-human-task</artifactId>
-			<version>${jbpm.version}</version>
-			<type>jar</type>
 		</dependency>
-				<dependency>
+		<dependency>
 			<groupId>org.codehaus.btm</groupId>
 			<artifactId>btm</artifactId>
 			<version>1.3.3</version>
@@ -40,62 +39,50 @@
 		<dependency>
 			<groupId>org.jbpm</groupId>
 			<artifactId>jbpm-bpmn2</artifactId>
-			<version>${jbpm.version}</version>
-			<type>jar</type>
 		</dependency>
 		<dependency>
 			<groupId>org.drools</groupId>
 			<artifactId>drools-persistence-jpa</artifactId>
-			<version>${drools.version}</version>
-			<type>jar</type>
 		</dependency>
 		<dependency>
 			<groupId>org.drools</groupId>
 			<artifactId>drools-spring</artifactId>
-			<version>${drools.version}</version>
-			<type>jar</type>
 		</dependency>
 		<dependency>
 			<groupId>org.drools</groupId>
 			<artifactId>drools-persistence-jpa</artifactId>
-			<version>${drools.version}</version>
-			<type>jar</type>
 		</dependency>
 		<dependency>
 			<groupId>org.drools</groupId>
 			<artifactId>drools-spring</artifactId>
-			<version>${drools.version}</version>
-			<type>jar</type>
 		</dependency>
 		<dependency>
 			<groupId>org.jbpm</groupId>
 			<artifactId>jbpm-persistence-jpa</artifactId>
-			<version>${jbpm.version}</version>
-			<type>jar</type>
 		</dependency>
 		<dependency>
 			<groupId>org.jbpm</groupId>
 			<artifactId>jbpm-flow-builder</artifactId>
-			<version>${jbpm.version}</version>
-			<type>jar</type>
 		</dependency>
 		<dependency>
-   			<groupId>org.jbpm</groupId>
-   			<artifactId>jbpm-bam</artifactId>
-   			<version>${jbpm.version}</version>
-   			<type>jar</type>
-    </dependency>
- <dependency>
-        <groupId>org.slf4j</groupId>
-        <artifactId>slf4j-simple</artifactId>
-        <version>1.6.0</version>
-    </dependency>
+			<groupId>org.jbpm</groupId>
+			<artifactId>jbpm-bam</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-log4j12</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>com.thoughtworks.xstream</groupId>
 			<artifactId>xstream</artifactId>
 			<version>1.3.1</version>
 			<type>jar</type>
 		</dependency>
+
 
 		<!-- HornetQ dependencies -->
 
@@ -104,7 +91,7 @@
 			<artifactId>spring-beans</artifactId>
 			<version>${spring.version}</version>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-core</artifactId>
@@ -128,15 +115,13 @@
 			<artifactId>spring-context-support</artifactId>
 			<version>${spring.version}</version>
 		</dependency>
-		
 
-<!--  test scope -->
-		
+
+		<!-- test scope -->
+
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
-			<version>${junit.version}</version>
-			<scope>test</scope>
 		</dependency>
 
 		<dependency>
@@ -144,7 +129,7 @@
 			<artifactId>h2</artifactId>
 			<version>1.2.124</version>
 		</dependency>
-		
+
 	</dependencies>
 </project>
 

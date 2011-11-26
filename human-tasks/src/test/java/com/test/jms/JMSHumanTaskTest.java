@@ -17,9 +17,9 @@ import org.drools.runtime.process.ProcessInstance;
 import org.jbpm.process.audit.JPAProcessInstanceDbLog;
 import org.jbpm.process.audit.JPAWorkingMemoryDbLogger;
 import org.jbpm.process.audit.NodeInstanceLog;
-import org.jbpm.process.workitem.wsht.CommandBasedWSHumanTaskHandler;
 import org.jbpm.task.Status;
 import org.jbpm.task.query.TaskSummary;
+import org.jbpm.task.service.hornetq.CommandBasedHornetQWSHumanTaskHandler;
 import org.junit.Test;
 
 public class JMSHumanTaskTest extends BaseJMSHumanTaskTest {
@@ -69,7 +69,7 @@ public class JMSHumanTaskTest extends BaseJMSHumanTaskTest {
 		//Logger that will give information about the process state, variables, etc
 		JPAProcessInstanceDbLog processLog = new JPAProcessInstanceDbLog(session.getEnvironment());
 		
-		CommandBasedWSHumanTaskHandler wsHumanTaskHandler = new CommandBasedWSHumanTaskHandler(
+		CommandBasedHornetQWSHumanTaskHandler wsHumanTaskHandler = new CommandBasedHornetQWSHumanTaskHandler(
 				session);
 		wsHumanTaskHandler.setClient(client.getTaskClient());
 		session.getWorkItemManager().registerWorkItemHandler("Human Task",

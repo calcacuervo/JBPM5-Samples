@@ -3,18 +3,20 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
 	xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>com.wordpress.samples</groupId>
+	<parent>
+		<artifactId>examples</artifactId>
+		<groupId>com.wordpress.demian</groupId>
+		<version>0.1-SNAPSHOT</version>
+	</parent>
+	<groupId>com.wordpress.demian</groupId>
 	<artifactId>sample-human-tasks</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.1-SNAPSHOT</version>
 	<name>test</name>
 	<url>http://maven.apache.org</url>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<jbpm.version>5.2.0-SNAPSHOT</jbpm.version>
-		<spring.version>3.0.3.RELEASE</spring.version>
-		<hornetq.version>2.2.2.Final</hornetq.version>
-		<netty.version>3.2.0.Final</netty.version>
 		<junit.version>4.8.1</junit.version>
+		<spring.version>3.0.3.RELEASE</spring.version>
 	</properties>
 
 
@@ -33,29 +35,23 @@
 		<dependency>
 			<groupId>org.hornetq</groupId>
 			<artifactId>hornetq-jms</artifactId>
-			<version>${hornetq.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>javax.jms</groupId>
 			<artifactId>jms</artifactId>
-			<version>1.1</version>
 		</dependency>
 		<!-- jBPM5 -->
 		<dependency>
 			<groupId>org.jboss.netty</groupId>
 			<artifactId>netty</artifactId>
-			<version>${netty.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.jbpm</groupId>
 			<artifactId>jbpm-flow</artifactId>
-			<version>${jbpm.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.jbpm</groupId>
 			<artifactId>jbpm-human-task</artifactId>
-			<version>${jbpm.version}</version>
-			<type>jar</type>
 		</dependency>
 		<dependency>
 			<groupId>org.codehaus.btm</groupId>
@@ -65,40 +61,28 @@
 		<dependency>
 			<groupId>org.jbpm</groupId>
 			<artifactId>jbpm-bpmn2</artifactId>
-			<version>${jbpm.version}</version>
-			<type>jar</type>
 		</dependency>
 		<dependency>
 			<groupId>org.jbpm</groupId>
 			<artifactId>jbpm-persistence-jpa</artifactId>
-			<version>${jbpm.version}</version>
-			<type>jar</type>
 		</dependency>
 		<dependency>
 			<groupId>org.jbpm</groupId>
 			<artifactId>jbpm-flow-builder</artifactId>
-			<version>${jbpm.version}</version>
-			<type>jar</type>
 		</dependency>
 		<dependency>
 			<groupId>org.jbpm</groupId>
 			<artifactId>jbpm-bam</artifactId>
-			<version>${jbpm.version}</version>
-			<type>jar</type>
 		</dependency>
 		<!--dependency> <groupId>org.slf4j</groupId> <artifactId>slf4j-simple</artifactId> 
 			<version>1.5.2</version> <type>jar</type> <scope>test</scope> </dependency -->
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-log4j12</artifactId>
-			<version>1.6.0</version>
-			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
-			<version>1.6.0</version>
-			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>com.thoughtworks.xstream</groupId>

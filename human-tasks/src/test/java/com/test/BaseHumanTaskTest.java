@@ -32,6 +32,9 @@ import org.jbpm.task.service.TaskServiceSession;
 import org.jbpm.task.service.hornetq.HornetQTaskClientConnector;
 import org.jbpm.task.service.hornetq.HornetQTaskClientHandler;
 import org.jbpm.task.service.hornetq.HornetQTaskServer;
+import org.jbpm.task.service.mina.MinaTaskClientConnector;
+import org.jbpm.task.service.mina.MinaTaskClientHandler;
+import org.jbpm.task.service.mina.MinaTaskServer;
 import org.junit.After;
 import org.junit.Before;
 
@@ -112,7 +115,7 @@ public abstract class BaseHumanTaskTest {
         
 		this.fillUsersAndGroups(taskSession);
 
-		server = new HornetQTaskServer(taskService, 5446);
+		server = new MinaTaskServer(taskService);
 		Thread thread = new Thread(server);
 		thread.start();
 		System.out.println("Waiting for the HornetQTask Server to come up");
@@ -121,11 +124,11 @@ public abstract class BaseHumanTaskTest {
 			Thread.sleep(50);
 		}
 
-		TaskClient taskClient = new TaskClient(new HornetQTaskClientConnector("client 1",
-				new HornetQTaskClientHandler(SystemEventListenerFactory
+		TaskClient taskClient = new TaskClient(new MinaTaskClientConnector("client 1",
+				new MinaTaskClientHandler(SystemEventListenerFactory
 						.getSystemEventListener())));
 		this.client = new TaskClientWrapper(taskClient);
-		this.client.connect("127.0.0.1", 5446);
+		this.client.connect("127.0.0.1", 9123);
 
 	}
 

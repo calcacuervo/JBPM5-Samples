@@ -4,8 +4,8 @@
              typeLanguage="http://www.java.com/javaTypes"
              expressionLanguage="http://www.mvel.org/2.0"
              xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
-             xmlns:xs="http://www.w3.org/2001/XMLSchema-instance"
-             xs:schemaLocation="http://www.omg.org/spec/BPMN/20100524/MODEL BPMN20.xsd"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="http://www.omg.org/spec/BPMN/20100524/MODEL BPMN20.xsd"
              xmlns:g="http://www.jboss.org/drools/flow/gpd"
              xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
              xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
@@ -13,38 +13,30 @@
              xmlns:tns="http://www.jboss.org/drools">
 
   <itemDefinition id="_limitItem" structureRef="java.lang.Long" />
-  <itemDefinition id="_CountItem" structureRef="java.lang.Long" />
+  <itemDefinition id="_countItem" structureRef="java.lang.Long" />
   <itemDefinition id="_exceedsItem" structureRef="java.lang.Boolean" />
 
   <process processType="Private" isExecutable="true" id="test" name="test" tns:packageName="org.test" >
 
     <!-- process variables -->
     <property id="limit" itemSubjectRef="_limitItem"/>
-    <property id="count" itemSubjectRef="_CountItem"/>
+    <property id="count" itemSubjectRef="_countItem"/>
     <property id="exceeds" itemSubjectRef="_exceedsItem"/>
 
     <!-- nodes -->
     <startEvent id="_1" name="Start" />
-
     <exclusiveGateway id="_2" name="toSubmit" gatewayDirection="Converging" />
-    
-    <!--scriptTask id="_3" name="Script" scriptFormat="http://www.java.com/java" >
-      <script>kcontext.getKnowledgeRuntime().insert(kcontext.getProcessInstance());</script>
-    </scriptTask-->
-
-    <businessRuleTask id="_4" name="ExceedsRule" g:ruleFlowGroup="ExceedsGroup" />
-
+    <businessRuleTask id="_4" name="ExceedsRule" g:ruleFlowGroup="ExceedsGroup" >
+    </businessRuleTask>
     <exclusiveGateway id="_5" name="Exceeded" gatewayDirection="Diverging" />
-
     <userTask id="_6" name="task1" >
       <ioSpecification>
         <dataInput id="_6_CommentInput" name="Comment" />
         <dataInput id="_6_SkippableInput" name="Skippable" />
         <dataInput id="_6_TaskNameInput" name="TaskName" />
         <dataInput id="_6_PriorityInput" name="Priority" />
-        
         <inputSet>
-            <dataInputRefs>_6_CommentInput</dataInputRefs>
+          <dataInputRefs>_6_CommentInput</dataInputRefs>
           <dataInputRefs>_6_SkippableInput</dataInputRefs>
           <dataInputRefs>_6_TaskNameInput</dataInputRefs>
           <dataInputRefs>_6_PriorityInput</dataInputRefs>
@@ -52,45 +44,42 @@
         <outputSet>
         </outputSet>
       </ioSpecification>
-       <dataInputAssociation>
+      <dataInputAssociation>
         <targetRef>_6_CommentInput</targetRef>
         <assignment>
-          <from xs:type="tFormalExpression">en-UK</from>
-          <to xs:type="tFormalExpression">_6_CommentInput</to>
+          <from xsi:type="tFormalExpression">en-UK</from>
+          <to xsi:type="tFormalExpression">_6_CommentInput</to>
         </assignment>
       </dataInputAssociation>
       <dataInputAssociation>
         <targetRef>_6_SkippableInput</targetRef>
         <assignment>
-          <from xs:type="tFormalExpression">false</from>
-          <to xs:type="tFormalExpression">_6_SkippableInput</to>
+          <from xsi:type="tFormalExpression">false</from>
+          <to xsi:type="tFormalExpression">_6_SkippableInput</to>
         </assignment>
       </dataInputAssociation>
       <dataInputAssociation>
         <targetRef>_6_TaskNameInput</targetRef>
         <assignment>
-          <from xs:type="tFormalExpression">Task 1</from>
-          <to xs:type="tFormalExpression">_6_TaskNameInput</to>
+          <from xsi:type="tFormalExpression">Task 1</from>
+          <to xsi:type="tFormalExpression">_6_TaskNameInput</to>
         </assignment>
       </dataInputAssociation>
       <dataInputAssociation>
         <targetRef>_6_PriorityInput</targetRef>
         <assignment>
-          <from xs:type="tFormalExpression"></from>
-          <to xs:type="tFormalExpression">_6_PriorityInput</to>
+          <from xsi:type="tFormalExpression"></from>
+          <to xsi:type="tFormalExpression">_6_PriorityInput</to>
         </assignment>
       </dataInputAssociation>
-       <potentialOwner>
+      <potentialOwner>
         <resourceAssignmentExpression>
           <formalExpression>operator</formalExpression>
         </resourceAssignmentExpression>
       </potentialOwner>
     </userTask>
-    
     <exclusiveGateway id="_7" name="gateway7" gatewayDirection="Converging" />
-    
     <exclusiveGateway id="_8" name="Approved" gatewayDirection="Diverging" />
-
     <userTask id="_9" name="task3" >
       <ioSpecification>
         <inputSet>
@@ -99,7 +88,6 @@
         </outputSet>
       </ioSpecification>
     </userTask>
-     
     <userTask id="_10" name="task2" >
       <ioSpecification>
         <inputSet>
@@ -108,40 +96,30 @@
         </outputSet>
       </ioSpecification>
     </userTask>
-    
-    
-    
-
     <endEvent id="_11" name="End" >
         <terminateEventDefinition/>
     </endEvent>
 
     <!-- connections -->
     <sequenceFlow id="_1-_2" sourceRef="_1" targetRef="_2" />
-    <!--sequenceFlow id="_2-_3" sourceRef="_2" targetRef="_3" /-->
+    <sequenceFlow id="_10-_2" sourceRef="_10" targetRef="_2" />
     <sequenceFlow id="_2-_4" sourceRef="_2" targetRef="_4" />
     <sequenceFlow id="_4-_5" sourceRef="_4" targetRef="_5" />
-     <sequenceFlow id="_5-_6" sourceRef="_5" targetRef="_6" name="EXCEEDS" >
-      <conditionExpression xs:type="tFormalExpression" language="http://www.java.com/java" >System.out.println("BEFORE TRUE NULL!!"+exceeds+"-> "+(exceeds == true));  return (exceeds == true);</conditionExpression>
+    <sequenceFlow id="_5-_6" sourceRef="_5" targetRef="_6" name="EXCEEDS" >
+      <conditionExpression xsi:type="tFormalExpression" language="http://www.java.com/java" > return (exceeds == true);</conditionExpression>
     </sequenceFlow>
     <sequenceFlow id="_5-_7" sourceRef="_5" targetRef="_7" name="NOTEXCEEDS" >
-      <conditionExpression xs:type="tFormalExpression" language="http://www.java.com/java" > System.out.println("BEFORE FALSE NULL!!"+exceeds+"-> "+(exceeds == false)); return (exceeds == false);</conditionExpression>
+      <conditionExpression xsi:type="tFormalExpression" language="http://www.java.com/java" >return (exceeds == false);</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="_8-_7" sourceRef="_8" targetRef="_7" name="APPROVED" >
+      <conditionExpression xsi:type="tFormalExpression" language="http://www.jboss.org/drools/rule" >eval(true)</conditionExpression>
     </sequenceFlow>
     <sequenceFlow id="_6-_8" sourceRef="_6" targetRef="_8" />
     <sequenceFlow id="_7-_9" sourceRef="_7" targetRef="_9" />
     <sequenceFlow id="_8-_10" sourceRef="_8" targetRef="_10" name="NOTAPP" >
-      <conditionExpression xs:type="tFormalExpression" language="http://www.jboss.org/drools/rule" >eval(false)</conditionExpression>
+      <conditionExpression xsi:type="tFormalExpression" language="http://www.jboss.org/drools/rule" >eval(false)</conditionExpression>
     </sequenceFlow>
-    
-    <sequenceFlow id="_8-_7" sourceRef="_8" targetRef="_7" name="APPROVED" >
-      <conditionExpression xs:type="tFormalExpression" language="http://www.jboss.org/drools/rule" >eval(true)</conditionExpression>
-    </sequenceFlow>
-    
-    <sequenceFlow id="_10-_2" sourceRef="_10" targetRef="_2" />
-
     <sequenceFlow id="_9-_11" sourceRef="_9" targetRef="_11" />
-
-
 
   </process>
 
@@ -150,40 +128,33 @@
       <bpmndi:BPMNShape bpmnElement="_1" >
         <dc:Bounds x="89" y="16" width="48" height="48" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="_4" >
-        <dc:Bounds x="59" y="256" width="80" height="48" />
-      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape bpmnElement="_2" >
         <dc:Bounds x="89" y="96" width="48" height="48" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="_6" >
-        <dc:Bounds x="93" y="416" width="100" height="48" />
+      <bpmndi:BPMNShape bpmnElement="_4" >
+        <dc:Bounds x="59" y="256" width="80" height="48" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape bpmnElement="_5" >
         <dc:Bounds x="69" y="336" width="48" height="48" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="_3" >
-        <dc:Bounds x="66" y="176" width="80" height="48" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="_9" >
-        <dc:Bounds x="16" y="656" width="100" height="48" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="_8" >
-        <dc:Bounds x="138" y="496" width="48" height="48" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="_10" >
-        <dc:Bounds x="169" y="16" width="100" height="48" />
+      <bpmndi:BPMNShape bpmnElement="_6" >
+        <dc:Bounds x="93" y="416" width="100" height="48" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape bpmnElement="_7" >
         <dc:Bounds x="42" y="576" width="48" height="48" />
       </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="_8" >
+        <dc:Bounds x="138" y="496" width="48" height="48" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="_9" >
+        <dc:Bounds x="16" y="656" width="100" height="48" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="_10" >
+        <dc:Bounds x="169" y="16" width="100" height="48" />
+      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape bpmnElement="_11" >
         <dc:Bounds x="42" y="736" width="48" height="48" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNEdge bpmnElement="_3-_4" >
-        <di:waypoint x="106" y="200" />
-        <di:waypoint x="99" y="280" />
-      </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge bpmnElement="_1-_2" >
         <di:waypoint x="113" y="40" />
         <di:waypoint x="113" y="120" />
@@ -192,29 +163,17 @@
         <di:waypoint x="219" y="40" />
         <di:waypoint x="113" y="120" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="_5-_6" >
-        <di:waypoint x="93" y="360" />
-        <di:waypoint x="143" y="440" />
+      <bpmndi:BPMNEdge bpmnElement="_2-_4" >
+        <di:waypoint x="113" y="120" />
+        <di:waypoint x="99" y="280" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge bpmnElement="_4-_5" >
         <di:waypoint x="99" y="280" />
         <di:waypoint x="93" y="360" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="_2-_3" >
-        <di:waypoint x="113" y="120" />
-        <di:waypoint x="106" y="200" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="_7-_9" >
-        <di:waypoint x="66" y="600" />
-        <di:waypoint x="66" y="680" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="_6-_8" >
+      <bpmndi:BPMNEdge bpmnElement="_5-_6" >
+        <di:waypoint x="93" y="360" />
         <di:waypoint x="143" y="440" />
-        <di:waypoint x="162" y="520" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="_8-_10" >
-        <di:waypoint x="162" y="520" />
-        <di:waypoint x="219" y="40" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge bpmnElement="_5-_7" >
         <di:waypoint x="93" y="360" />
@@ -223,6 +182,18 @@
       <bpmndi:BPMNEdge bpmnElement="_8-_7" >
         <di:waypoint x="162" y="520" />
         <di:waypoint x="66" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="_6-_8" >
+        <di:waypoint x="143" y="440" />
+        <di:waypoint x="162" y="520" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="_7-_9" >
+        <di:waypoint x="66" y="600" />
+        <di:waypoint x="66" y="680" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="_8-_10" >
+        <di:waypoint x="162" y="520" />
+        <di:waypoint x="219" y="40" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge bpmnElement="_9-_11" >
         <di:waypoint x="66" y="680" />

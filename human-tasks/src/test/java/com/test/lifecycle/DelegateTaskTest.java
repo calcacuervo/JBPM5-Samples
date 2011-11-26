@@ -18,6 +18,7 @@ import org.jbpm.process.audit.ProcessInstanceLog;
 import org.jbpm.process.workitem.wsht.CommandBasedWSHumanTaskHandler;
 import org.jbpm.task.Status;
 import org.jbpm.task.query.TaskSummary;
+import org.jbpm.task.service.hornetq.CommandBasedHornetQWSHumanTaskHandler;
 import org.junit.Test;
 
 import com.test.BaseHumanTaskTest;
@@ -100,7 +101,7 @@ public class DelegateTaskTest extends BaseHumanTaskTest {
 		JPAProcessInstanceDbLog processLog = new JPAProcessInstanceDbLog(
 				session.getEnvironment());
 
-		CommandBasedWSHumanTaskHandler wsHumanTaskHandler = new CommandBasedWSHumanTaskHandler(
+		CommandBasedHornetQWSHumanTaskHandler wsHumanTaskHandler = new CommandBasedHornetQWSHumanTaskHandler(
 				session);
 		wsHumanTaskHandler.setClient(client.getTaskClient());
 		session.getWorkItemManager().registerWorkItemHandler("Human Task",
@@ -179,7 +180,7 @@ public class DelegateTaskTest extends BaseHumanTaskTest {
 		JPAProcessInstanceDbLog processLog = new JPAProcessInstanceDbLog(
 				session.getEnvironment());
 
-		CommandBasedWSHumanTaskHandler wsHumanTaskHandler = new CommandBasedWSHumanTaskHandler(
+		CommandBasedHornetQWSHumanTaskHandler wsHumanTaskHandler = new CommandBasedHornetQWSHumanTaskHandler(
 				session);
 		wsHumanTaskHandler.setClient(client.getTaskClient());
 		session.getWorkItemManager().registerWorkItemHandler("Human Task",
@@ -260,7 +261,7 @@ public class DelegateTaskTest extends BaseHumanTaskTest {
 		JPAProcessInstanceDbLog processLog = new JPAProcessInstanceDbLog(
 				session.getEnvironment());
 
-		CommandBasedWSHumanTaskHandler wsHumanTaskHandler = new CommandBasedWSHumanTaskHandler(
+		CommandBasedHornetQWSHumanTaskHandler wsHumanTaskHandler = new CommandBasedHornetQWSHumanTaskHandler(
 				session);
 		wsHumanTaskHandler.setClient(client.getTaskClient());
 		session.getWorkItemManager().registerWorkItemHandler("Human Task",

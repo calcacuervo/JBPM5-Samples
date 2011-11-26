@@ -4,8 +4,8 @@
              typeLanguage="http://www.java.com/javaTypes"
              expressionLanguage="http://www.mvel.org/2.0"
              xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
-             xmlns:xs="http://www.w3.org/2001/XMLSchema-instance"
-             xs:schemaLocation="http://www.omg.org/spec/BPMN/20100524/MODEL BPMN20.xsd"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="http://www.omg.org/spec/BPMN/20100524/MODEL BPMN20.xsd"
              xmlns:g="http://www.jboss.org/drools/flow/gpd"
              xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
              xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
@@ -16,7 +16,7 @@
   <itemDefinition id="_countItem" structureRef="java.lang.Long" />
   <itemDefinition id="_exceedsItem" structureRef="java.lang.Boolean" />
 
-  <process processType="Private" isExecutable="true" id="test" name="test" tns:packageName="com.test" >
+  <process processType="Private" isExecutable="true" id="test_stateless" name="test_stateless" tns:packageName="com.test" >
 
     <!-- process variables -->
     <property id="limit" itemSubjectRef="_limitItem"/>
@@ -38,13 +38,31 @@
       <script>System.out.println("It was exceeded!");</script>
     </scriptTask>
     <exclusiveGateway id="_8" name="toUpdateStudy" gatewayDirection="Converging" />
-    <task id="_24" name="ExceedsRule" tns:taskName="Log" >
+    <task id="_24" name="ExceedsRule" tns:taskName="ExceedsRule" >
       <ioSpecification>
+        <dataInput id="_24_limitInput" name="limit" />
+        <dataInput id="_24_countInput" name="count" />
+        <dataOutput id="_24_exceedsOutput" name="exceeds" />
         <inputSet>
+          <dataInputRefs>_24_limitInput</dataInputRefs>
+          <dataInputRefs>_24_countInput</dataInputRefs>
         </inputSet>
         <outputSet>
+          <dataOutputRefs>_24_exceedsOutput</dataOutputRefs>
         </outputSet>
       </ioSpecification>
+      <dataInputAssociation>
+        <sourceRef>limit</sourceRef>
+        <targetRef>_24_limitInput</targetRef>
+      </dataInputAssociation>
+      <dataInputAssociation>
+        <sourceRef>count</sourceRef>
+        <targetRef>_24_countInput</targetRef>
+      </dataInputAssociation>
+      <dataOutputAssociation>
+        <sourceRef>_24_exceedsOutput</sourceRef>
+        <targetRef>exceeds</targetRef>
+      </dataOutputAssociation>
     </task>
     <scriptTask id="_26" name="Script_Notexceeds" scriptFormat="http://www.java.com/java" >
       <script>System.out.println("It was NOT exceeded!");</script>
@@ -57,20 +75,20 @@
     <sequenceFlow id="_24-_4" sourceRef="_24" targetRef="_4" />
     <sequenceFlow id="_8-_23" sourceRef="_8" targetRef="_23" />
     <sequenceFlow id="_4-_25" sourceRef="_4" targetRef="_25" name="EXCEEDS" >
-      <conditionExpression xs:type="tFormalExpression" >return exceeds==true;</conditionExpression>
+      <conditionExpression xsi:type="tFormalExpression" >return exceeds==true;</conditionExpression>
     </sequenceFlow>
     <sequenceFlow id="_26-_8" sourceRef="_26" targetRef="_8" />
     <sequenceFlow id="_25-_8" sourceRef="_25" targetRef="_8" />
     <sequenceFlow id="_1-_24" sourceRef="_1" targetRef="_24" />
     <sequenceFlow id="_4-_26" sourceRef="_4" targetRef="_26" name="NOTEXCEEDS" >
-      <conditionExpression xs:type="tFormalExpression" >return exceeds==false;</conditionExpression>
+      <conditionExpression xsi:type="tFormalExpression" >return exceeds==false;</conditionExpression>
     </sequenceFlow>
     <sequenceFlow id="_23-_13" sourceRef="_23" targetRef="_13" />
 
   </process>
 
   <bpmndi:BPMNDiagram>
-    <bpmndi:BPMNPlane bpmnElement="test" >
+    <bpmndi:BPMNPlane bpmnElement="test_stateless" >
       <bpmndi:BPMNShape bpmnElement="_1" >
         <dc:Bounds x="16" y="56" width="48" height="48" />
       </bpmndi:BPMNShape>

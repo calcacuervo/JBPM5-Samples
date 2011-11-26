@@ -2,43 +2,22 @@ package com.test;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
 
 import junit.framework.Assert;
 
 import org.drools.KnowledgeBase;
-import org.drools.KnowledgeBaseFactory;
-import org.drools.base.MapGlobalResolver;
-import org.drools.builder.KnowledgeBuilder;
-import org.drools.builder.KnowledgeBuilderError;
-import org.drools.builder.KnowledgeBuilderFactory;
-import org.drools.builder.ResourceType;
-import org.drools.io.impl.ClassPathResource;
 import org.drools.logger.KnowledgeRuntimeLoggerFactory;
 import org.drools.persistence.jpa.JPAKnowledgeService;
-import org.drools.runtime.Environment;
-import org.drools.runtime.EnvironmentName;
 import org.drools.runtime.StatefulKnowledgeSession;
 import org.drools.runtime.process.ProcessInstance;
 import org.drools.runtime.process.WorkItem;
 import org.drools.runtime.process.WorkItemHandler;
 import org.drools.runtime.process.WorkItemManager;
-import org.jbpm.process.audit.JPAProcessInstanceDbLog;
-import org.jbpm.process.audit.JPAWorkingMemoryDbLogger;
-import org.jbpm.process.audit.VariableInstanceLog;
-import org.jbpm.process.workitem.wsht.CommandBasedWSHumanTaskHandler;
 import org.jbpm.task.query.TaskSummary;
-import org.junit.After;
-import org.junit.Before;
+import org.jbpm.task.service.hornetq.CommandBasedHornetQWSHumanTaskHandler;
 import org.junit.Test;
-
-import bitronix.tm.TransactionManagerServices;
-import bitronix.tm.resource.jdbc.PoolingDataSource;
 
 public class ErrorHandlingTest extends BaseHumanTaskTest{
 
@@ -72,7 +51,7 @@ public class ErrorHandlingTest extends BaseHumanTaskTest{
 				env);
 
 		KnowledgeRuntimeLoggerFactory.newConsoleLogger(session);
-		CommandBasedWSHumanTaskHandler ht = new CommandBasedWSHumanTaskHandler(session);
+		CommandBasedHornetQWSHumanTaskHandler ht = new CommandBasedHornetQWSHumanTaskHandler(session);
 		ht.setClient(this.client.getTaskClient());
 		session.getWorkItemManager().registerWorkItemHandler("Human Task", ht);
 		Map<String, Object> parameters = new HashMap<String, Object>();
