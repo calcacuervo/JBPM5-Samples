@@ -11,7 +11,7 @@
 	<groupId>com.wordpress.demian</groupId>
 	<artifactId>bpmn-examples</artifactId>
 	<version>0.1-SNAPSHOT</version>
-	<name>Demian Samples :: BPMN</name>
+	<name>Demian Examples :: BPMN</name>
 	<url>http://maven.apache.org</url>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

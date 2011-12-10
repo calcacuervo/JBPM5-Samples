@@ -2,7 +2,6 @@ package com.test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.List;
@@ -14,7 +13,9 @@ import org.jbpm.task.Task;
 import org.jbpm.task.query.TaskSummary;
 import org.jbpm.task.service.ContentData;
 import org.jbpm.task.service.TaskClient;
+import org.jbpm.task.service.TaskClientHandler.QueryGenericResponseHandler;
 import org.jbpm.task.service.responsehandlers.BlockingGetContentResponseHandler;
+import org.jbpm.task.service.responsehandlers.BlockingQueryGenericResponseHandler;
 import org.jbpm.task.service.responsehandlers.BlockingTaskOperationResponseHandler;
 import org.jbpm.task.service.responsehandlers.BlockingTaskSummaryResponseHandler;
 
@@ -214,5 +215,12 @@ public class TaskClientWrapper {
 			e.printStackTrace();
 			return null;
 		}
+	}
+	
+	public List query(String hqlQuery, int size) {
+		BlockingQueryGenericResponseHandler responseHandler = new BlockingQueryGenericResponseHandler();
+		client.query(hqlQuery, size, 0, responseHandler);
+		responseHandler.waitTillDone(1000);
+		return responseHandler.getResults();
 	}
 }

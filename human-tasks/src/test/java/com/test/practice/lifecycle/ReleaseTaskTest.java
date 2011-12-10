@@ -1,4 +1,4 @@
-package com.test.lifecycle;
+package com.test.practice.lifecycle;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -43,33 +43,27 @@ public class ReleaseTaskTest extends BaseHumanTaskTest {
 
 	@Override
 	protected String[] getTestUsers() {
-		return new String[] { "testUser1", "testUser2", "testUser3",
+		return new String[] { "demian", "john", "demian's friend",
 				"Administrator" };
 	}
 
 	@Override
 	protected String[] getTestGroups() {
-		return new String[] { "testGroup1", "testGroup2" };
+		return new String[] { "hr", "dev" };
 	}
 
 	@Override
 	protected String[] getProcessPaths() {
-		return new String[] { "two-tasks-human-task-test.bpmn",
-				"dynamic-user-human-task-test.bpmn" };
+		return new String[] { "com/test/practice/02-simple-group-asignment.bpmn" };
 	}
 
 	@Override
 	protected Map<String, List<String>> getTestUserGroupsAssignments() {
 		Map<String, List<String>> assign = new HashMap<String, List<String>>();
 		List<String> user1Groups = new ArrayList<String>();
-		List<String> user2Groups = new ArrayList<String>();
-		user1Groups.add("testGroup1");
-
-		// user2 is in both groups!
-		user2Groups.add("testGroup1");
-		user2Groups.add("testGroup2");
-		assign.put("testUser1", user1Groups);
-		assign.put("testUser2", user2Groups);
+		user1Groups.add("hr");
+		assign.put("demian", user1Groups);
+		assign.put("john", user1Groups);
 		return assign;
 	}
 
@@ -101,27 +95,27 @@ public class ReleaseTaskTest extends BaseHumanTaskTest {
 		wsHumanTaskHandler.setClient(client.getTaskClient());
 		session.getWorkItemManager().registerWorkItemHandler("Human Task",
 				wsHumanTaskHandler);
-		ProcessInstance process = session.createProcessInstance("TwoTasksTest",
+		ProcessInstance process = session.createProcessInstance("SimpleGroupAsignment",
 				null);
 		session.insert(process);
 		long processInstanceId = process.getId();
 		session.startProcessInstance(processInstanceId);
 		Thread.sleep(2000);
 
-		// As it is potentially onwner by the testGroup1, it should be avaible
-		// for testUser1 and testUser2.. let check it!
+		// As it is potentially onwned by the hr, it should be avaible
+		// for demian and john.. let check it!
 		List<TaskSummary> tasks = client.getTasksAssignedAsPotentialOwner(
-				"testUser2", "en-UK",
-				this.getTestUserGroupsAssignments().get("testUser2"));
+				"demian", "en-UK",
+				this.getTestUserGroupsAssignments().get("demian"));
 		Assert.assertEquals(1, tasks.size());
-		tasks = client.getTasksAssignedAsPotentialOwner("testUser1", "en-UK",
-				this.getTestUserGroupsAssignments().get("testUser1"));
+		tasks = client.getTasksAssignedAsPotentialOwner("john", "en-UK",
+				this.getTestUserGroupsAssignments().get("john"));
 
 		Assert.assertEquals(1, tasks.size());
 		long taskId = tasks.get(0).getId();
 
-		client.claim(taskId, "testUser1", this.getTestUserGroupsAssignments()
-				.get("testUser1"));
+		client.claim(taskId, "demian", this.getTestUserGroupsAssignments()
+				.get("demian"));
 
 //		Thread.sleep(1000);
 //		
@@ -131,44 +125,28 @@ public class ReleaseTaskTest extends BaseHumanTaskTest {
 //
 //		Assert.assertEquals(0, tasks.size());
 
-		client.start(taskId, "testUser1");
+		client.start(taskId, "demian");
 
 		Thread.sleep(1000);
 		
 		// Now, release the task
-		client.release(taskId, "testUser1");
+		client.release(taskId, "demian");
 
-		// Now it should be available for all people in testGroup1. It includes testUser2!
-		tasks = client.getTasksAssignedAsPotentialOwner("testUser2", "en-UK",
-				this.getTestUserGroupsAssignments().get("testUser2"));
+		// Now it should be available for all people in hr. It includes john!
+		tasks = client.getTasksAssignedAsPotentialOwner("john", "en-UK",
+				this.getTestUserGroupsAssignments().get("john"));
 
 		Assert.assertEquals(1, tasks.size());
 		taskId = tasks.get(0).getId();
-		client.claim(taskId, "testUser1", this.getTestUserGroupsAssignments().get("testUser2"));
-		client.start(taskId, "testUser1");
-		client.complete(taskId, "testUser1", null);
+		client.claim(taskId, "john", this.getTestUserGroupsAssignments().get("john"));
+		client.start(taskId, "john");
+		client.complete(taskId, "john", null);
 
-		tasks = client.getTasksOwned("testUser1", "en-UK");
+		tasks = client.getTasksOwned("john", "en-UK");
 		Assert.assertEquals(1, tasks.size());
 		Assert.assertEquals(Status.Completed, tasks.get(0).getStatus());
 
 		// And then the process continues.
-		List<TaskSummary> tasksUser2 = client.getTasksAssignedAsPotentialOwner(
-				"testUser2", "en-UK",
-				this.getTestUserGroupsAssignments().get("testUser2"));
-
-		Assert.assertEquals(1, tasksUser2.size());
-		taskId = tasksUser2.get(0).getId();
-		client.claim(taskId, "testUser2", this.getTestUserGroupsAssignments()
-				.get("testUser2"));
-		client.start(taskId, "testUser2");
-		client.complete(taskId, "testUser2", null);
-
-		// Reload the tasks to see new status.
-		tasksUser2 = client.getTasksOwned("testUser2", "en-UK");
-		Assert.assertEquals(1, tasksUser2.size());
-		Assert.assertEquals(Status.Completed, tasksUser2.get(0).getStatus());
-
 		// now check in the logs the process finished.
 		ProcessInstanceLog processInstanceLog = processLog
 				.findProcessInstance(processInstanceId);

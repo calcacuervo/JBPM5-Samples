@@ -115,7 +115,8 @@ public abstract class BaseHumanTaskTest {
         
 		this.fillUsersAndGroups(taskSession);
 
-		server = new MinaTaskServer(taskService);
+//		server = new MinaTaskServer(taskService);
+		server = new HornetQTaskServer(taskService, 5446);
 		Thread thread = new Thread(server);
 		thread.start();
 		System.out.println("Waiting for the HornetQTask Server to come up");
@@ -124,11 +125,12 @@ public abstract class BaseHumanTaskTest {
 			Thread.sleep(50);
 		}
 
-		TaskClient taskClient = new TaskClient(new MinaTaskClientConnector("client 1",
-				new MinaTaskClientHandler(SystemEventListenerFactory
+		    TaskClient taskClient = new TaskClient(new HornetQTaskClientConnector("client 1",
+					  	
+				        new HornetQTaskClientHandler(SystemEventListenerFactory
 						.getSystemEventListener())));
 		this.client = new TaskClientWrapper(taskClient);
-		this.client.connect("127.0.0.1", 9123);
+		this.client.connect("127.0.0.1", 5446);
 
 	}
 
@@ -142,9 +144,9 @@ public abstract class BaseHumanTaskTest {
 		if (emf != null) {
 			emf.close();
 		}
-		// if (emfTask != null) {
-		// emfTask.close();
-		// }
+		 if (emfTask != null) {
+		 emfTask.close();
+		 }
 		if (ds1 != null) {
 			ds1.close();
 		}

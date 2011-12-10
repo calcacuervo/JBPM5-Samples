@@ -1,4 +1,4 @@
-package com.test.lifecycle;
+package com.test.practice.lifecycle;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -49,30 +49,27 @@ public class DelegateTaskTest extends BaseHumanTaskTest {
 
 	@Override
 	protected String[] getTestUsers() {
-		return new String[] { "testUser1", "testUser2", "testUser3",
+		return new String[] { "demian", "john", "demian's friend",
 				"Administrator" };
 	}
 
 	@Override
 	protected String[] getTestGroups() {
-		return new String[] { "testGroup1", "testGroup2" };
+		return new String[] { "hr", "dev" };
 	}
 
 	@Override
 	protected String[] getProcessPaths() {
-		return new String[] { "two-tasks-human-task-test.bpmn",
-				"dynamic-user-human-task-test.bpmn" };
+		return new String[] { "com/test/practice/02-simple-group-asignment.bpmn" };
 	}
 
 	@Override
 	protected Map<String, List<String>> getTestUserGroupsAssignments() {
 		Map<String, List<String>> assign = new HashMap<String, List<String>>();
 		List<String> user1Groups = new ArrayList<String>();
-		List<String> user2Groups = new ArrayList<String>();
-		user1Groups.add("testGroup1");
-		user2Groups.add("testGroup2");
-		assign.put("testUser1", user1Groups);
-		assign.put("testUser2", user2Groups);
+		user1Groups.add("hr");
+		assign.put("demian", user1Groups);
+		assign.put("john", user1Groups);
 		return assign;
 	}
 
@@ -106,52 +103,42 @@ public class DelegateTaskTest extends BaseHumanTaskTest {
 		wsHumanTaskHandler.setClient(client.getTaskClient());
 		session.getWorkItemManager().registerWorkItemHandler("Human Task",
 				wsHumanTaskHandler);
-		ProcessInstance process = session.createProcessInstance("TwoTasksTest",
+		ProcessInstance process = session.createProcessInstance("SimpleGroupAsignment",
 				null);
 		session.insert(process);
 		long processInstanceId = process.getId();
 		session.startProcessInstance(processInstanceId);
 		Thread.sleep(2000);
 		List<TaskSummary> tasks = client.getTasksAssignedAsPotentialOwner(
-				"testUser1", "en-UK",
-				this.getTestUserGroupsAssignments().get("testUser1"));
+				"demian", "en-UK",
+				this.getTestUserGroupsAssignments().get("demian"));
 
 		Assert.assertEquals(1, tasks.size());
 
 		long taskId = tasks.get(0).getId();
-		// testUser1 claims his task. After that, he is the actual owner
-		client.claim(taskId, "testUser1", this.getTestUserGroupsAssignments()
-				.get("testUser1"));
+		// demian claims his task. After that, he is the actual owner
+		client.claim(taskId, "demian", this.getTestUserGroupsAssignments()
+				.get("demian"));
 
-		// now, testUser1, delegates the task to testUser2
-		client.delegate(taskId, "testUser1", "testUser2");
+		// now, demian, delegates the task to his friend
+		client.delegate(taskId, "demian", "demian's friend");
 
-		// testUser2 will have the task assigned
-		List<TaskSummary> tasksUser2 = client.getTasksAssignedAsPotentialOwner(
-				"testUser2", "en-UK",
-				this.getTestUserGroupsAssignments().get("testUser2"));
+		// demian's friend will have the task assigned
+		List<TaskSummary> tasksFriend = client.getTasksAssignedAsPotentialOwner(
+				"demian's friend", "en-UK",
+				this.getTestUserGroupsAssignments().get("demian's friend"));
 
-		Assert.assertEquals(1, tasksUser2.size());
-		Assert.assertEquals(taskId, tasksUser2.get(0).getId());
-		client.claim(taskId, "testUser2", this.getTestUserGroupsAssignments()
-				.get("testUser2"));
-		client.start(taskId, "testUser2");
-		client.complete(taskId, "testUser2", null);
+		Assert.assertEquals(1, tasksFriend.size());
+		Assert.assertEquals(taskId, tasksFriend.get(0).getId());
+		client.claim(taskId, "demian's friend", this.getTestUserGroupsAssignments()
+				.get("demian's friend"));
+		client.start(taskId, "demian's friend");
+		client.complete(taskId, "demian's friend", null);
 
 		// Reload the tasks to see new status.
-		tasksUser2 = client.getTasksOwned("testUser2", "en-UK");
-		Assert.assertEquals(1, tasksUser2.size());
-		Assert.assertEquals(Status.Completed, tasksUser2.get(0).getStatus());
-
-		// Ok, now the flow continues for the next task.
-		tasksUser2 = client.getTasksAssignedAsPotentialOwner("testUser2",
-				"en-UK", this.getTestUserGroupsAssignments().get("testUser2"));
-
-		Assert.assertEquals(1, tasksUser2.size());
-		client.claim(tasksUser2.get(0).getId(), "testUser2", this
-				.getTestUserGroupsAssignments().get("testUser2"));
-		client.start(tasksUser2.get(0).getId(), "testUser2");
-		client.complete(tasksUser2.get(0).getId(), "testUser2", null);
+		tasksFriend = client.getTasksOwned("demian's friend", "en-UK");
+		Assert.assertEquals(1, tasksFriend.size());
+		Assert.assertEquals(Status.Completed, tasksFriend.get(0).getStatus());
 
 		// now check in the logs the process finished.
 		ProcessInstanceLog processInstanceLog = processLog
@@ -185,53 +172,42 @@ public class DelegateTaskTest extends BaseHumanTaskTest {
 		wsHumanTaskHandler.setClient(client.getTaskClient());
 		session.getWorkItemManager().registerWorkItemHandler("Human Task",
 				wsHumanTaskHandler);
-		ProcessInstance process = session.createProcessInstance("TwoTasksTest",
+		ProcessInstance process = session.createProcessInstance("SimpleGroupAsignment",
 				null);
 		session.insert(process);
 		long processInstanceId = process.getId();
 		session.startProcessInstance(processInstanceId);
 		Thread.sleep(2000);
 		List<TaskSummary> tasks = client.getTasksAssignedAsPotentialOwner(
-				"testUser1", "en-UK",
-				this.getTestUserGroupsAssignments().get("testUser1"));
+				"demian", "en-UK",
+				this.getTestUserGroupsAssignments().get("demian"));
 
 		Assert.assertEquals(1, tasks.size());
 
 		long taskId = tasks.get(0).getId();
-		// testUser1 claims his task. After that, he is the actual owner
-		client.claim(taskId, "testUser1", this.getTestUserGroupsAssignments()
-				.get("testUser1"));
+		// demian claims his task. After that, he is the actual owner
+		client.claim(taskId, "demian", this.getTestUserGroupsAssignments()
+				.get("demian"));
 
-		// now, the Administrator, delegates the task to testUser2
-		client.delegate(taskId, "Administrator", "testUser2");
+		// now, the Administrator, delegates the task to demian's friend
+		client.delegate(taskId, "Administrator", "demian's friend");
 
-		// testUser2 will have the task assigned
-		// ended first task, let's take the second..
+		// demian's friend will have the task assigned
 		List<TaskSummary> tasksUser2 = client.getTasksAssignedAsPotentialOwner(
-				"testUser2", "en-UK",
-				this.getTestUserGroupsAssignments().get("testUser2"));
+				"demian's friend", "en-UK",
+				this.getTestUserGroupsAssignments().get("demian's friend"));
 
 		Assert.assertEquals(1, tasksUser2.size());
 		Assert.assertEquals(taskId, tasksUser2.get(0).getId());
-		client.claim(taskId, "testUser2", this.getTestUserGroupsAssignments()
-				.get("testUser2"));
-		client.start(taskId, "testUser2");
-		client.complete(taskId, "testUser2", null);
+		client.claim(taskId, "demian's friend", this.getTestUserGroupsAssignments()
+				.get("demian's friend"));
+		client.start(taskId, "demian's friend");
+		client.complete(taskId, "demian's friend", null);
 
 		// Reload the tasks to see new status.
-		tasksUser2 = client.getTasksOwned("testUser2", "en-UK");
+		tasksUser2 = client.getTasksOwned("demian's friend", "en-UK");
 		Assert.assertEquals(1, tasksUser2.size());
 		Assert.assertEquals(Status.Completed, tasksUser2.get(0).getStatus());
-
-		// Ok, now the flow continues for the next task.
-		tasksUser2 = client.getTasksAssignedAsPotentialOwner("testUser2",
-				"en-UK", this.getTestUserGroupsAssignments().get("testUser2"));
-
-		Assert.assertEquals(1, tasksUser2.size());
-		client.claim(tasksUser2.get(0).getId(), "testUser2", this
-				.getTestUserGroupsAssignments().get("testUser2"));
-		client.start(tasksUser2.get(0).getId(), "testUser2");
-		client.complete(tasksUser2.get(0).getId(), "testUser2", null);
 
 		// now check in the logs the process finished.
 		ProcessInstanceLog processInstanceLog = processLog
@@ -266,50 +242,40 @@ public class DelegateTaskTest extends BaseHumanTaskTest {
 		wsHumanTaskHandler.setClient(client.getTaskClient());
 		session.getWorkItemManager().registerWorkItemHandler("Human Task",
 				wsHumanTaskHandler);
-		ProcessInstance process = session.createProcessInstance("TwoTasksTest",
+		ProcessInstance process = session.createProcessInstance("SimpleGroupAsignment",
 				null);
 		session.insert(process);
 		long processInstanceId = process.getId();
 		session.startProcessInstance(processInstanceId);
 		Thread.sleep(2000);
 		List<TaskSummary> tasks = client.getTasksAssignedAsPotentialOwner(
-				"testUser1", "en-UK",
-				this.getTestUserGroupsAssignments().get("testUser1"));
+				"demian", "en-UK",
+				this.getTestUserGroupsAssignments().get("demian"));
 
 		Assert.assertEquals(1, tasks.size());
 
 		long taskId = tasks.get(0).getId();
 
-		// now, the Administrator, delegates the task to testUser2
-		client.delegate(taskId, "Administrator", "testUser2");
+		// now, the Administrator, delegates the task to demian's friend
+		client.delegate(taskId, "Administrator", "demian's friend");
 
-		// testUser2 will have the task assigned
+		// demian's friend will have the task assigned
 		// ended first task, let's take the second..
 		List<TaskSummary> tasksUser2 = client.getTasksAssignedAsPotentialOwner(
-				"testUser2", "en-UK",
-				this.getTestUserGroupsAssignments().get("testUser2"));
+				"demian's friend", "en-UK",
+				this.getTestUserGroupsAssignments().get("demian's friend"));
 
 		Assert.assertEquals(1, tasksUser2.size());
 		Assert.assertEquals(taskId, tasksUser2.get(0).getId());
-		client.claim(taskId, "testUser2", this.getTestUserGroupsAssignments()
-				.get("testUser2"));
-		client.start(taskId, "testUser2");
-		client.complete(taskId, "testUser2", null);
+		client.claim(taskId, "demian's friend", this.getTestUserGroupsAssignments()
+				.get("demian's friend"));
+		client.start(taskId, "demian's friend");
+		client.complete(taskId, "demian's friend", null);
 
 		// Reload the tasks to see new status.
-		tasksUser2 = client.getTasksOwned("testUser2", "en-UK");
+		tasksUser2 = client.getTasksOwned("demian's friend", "en-UK");
 		Assert.assertEquals(1, tasksUser2.size());
 		Assert.assertEquals(Status.Completed, tasksUser2.get(0).getStatus());
-
-		// Ok, now the flow continues for the next task.
-		tasksUser2 = client.getTasksAssignedAsPotentialOwner("testUser2",
-				"en-UK", this.getTestUserGroupsAssignments().get("testUser2"));
-
-		Assert.assertEquals(1, tasksUser2.size());
-		client.claim(tasksUser2.get(0).getId(), "testUser2", this
-				.getTestUserGroupsAssignments().get("testUser2"));
-		client.start(tasksUser2.get(0).getId(), "testUser2");
-		client.complete(tasksUser2.get(0).getId(), "testUser2", null);
 
 		// now check in the logs the process finished.
 		ProcessInstanceLog processInstanceLog = processLog
